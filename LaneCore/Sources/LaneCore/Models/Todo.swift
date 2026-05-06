@@ -1,6 +1,6 @@
 import Foundation
 
-struct Todo: Codable, Equatable {
+struct Todo: Codable, Equatable, Identifiable {
     var id: String
     var stageInstanceId: String
     var title: String

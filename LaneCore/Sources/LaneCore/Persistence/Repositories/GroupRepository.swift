@@ -45,33 +45,3 @@ struct GroupRepository: Repository {
     }
 }
 
-extension Group: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "group_"
-
-    enum Columns {
-        static let id = Column("id")
-        static let name = Column("name")
-        static let color = Column("color")
-        static let icon = Column("icon")
-        static let sortOrder = Column("sort_order")
-        static let createdAt = Column("created_at")
-    }
-
-    init(row: Row) {
-        id = row[Columns.id]
-        name = row[Columns.name]
-        color = row[Columns.color]
-        icon = row[Columns.icon]
-        sortOrder = row[Columns.sortOrder]
-        createdAt = row[Columns.createdAt]
-    }
-
-    func encode(to container: inout PersistenceContainer) {
-        container[Columns.id] = id
-        container[Columns.name] = name
-        container[Columns.color] = color
-        container[Columns.icon] = icon
-        container[Columns.sortOrder] = sortOrder
-        container[Columns.createdAt] = createdAt
-    }
-}

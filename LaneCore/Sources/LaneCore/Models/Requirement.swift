@@ -5,7 +5,7 @@ enum RequirementStatus: String, Codable, Equatable {
     case archived
 }
 
-struct Requirement: Codable, Equatable {
+struct Requirement: Codable, Equatable, Identifiable {
     var id: String
     var groupId: String
     var title: String

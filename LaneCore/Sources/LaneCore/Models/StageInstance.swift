@@ -7,7 +7,7 @@ enum StageStatus: String, Codable, Equatable {
     case skipped
 }
 
-struct StageInstance: Codable, Equatable {
+struct StageInstance: Codable, Equatable, Identifiable {
     var id: String
     var requirementId: String
     var name: String
