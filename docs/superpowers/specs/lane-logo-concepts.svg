@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" font-family="-apple-system, 'General Sans', sans-serif">
+  <!-- background -->
+  <rect width="800" height="600" fill="#FAFAF7"/>
+
+  <!-- top wash gradient (subtle peach) -->
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5E8DD" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#FAFAF7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="220" fill="url(#wash)"/>
+
+  <!-- header label -->
+  <text x="40" y="40" font-size="11" letter-spacing="1.6" fill="#8A8682" font-weight="500">LOGO CONCEPTS · LANE</text>
+  <line x1="40" y1="60" x2="760" y2="60" stroke="#E8E6E1"/>
+
+  <!-- ============ Variant A: pure mark ============ -->
+  <text x="40" y="100" font-size="10" letter-spacing="1.6" fill="#8A8682">VARIANT A · MARK</text>
+
+  <!-- two lanes -->
+  <g transform="translate(40, 130)">
+    <!-- lane 1: thin baseline + filled segment -->
+    <line x1="0" y1="0" x2="220" y2="0" stroke="#1A1A18" stroke-width="1.5"/>
+    <rect x="60" y="-7" width="50" height="14" fill="#1A1A18"/>
+
+    <!-- lane 2: thin baseline + filled segment offset -->
+    <line x1="0" y1="32" x2="220" y2="32" stroke="#1A1A18" stroke-width="1.5"/>
+    <rect x="120" y="25" width="50" height="14" fill="#1A1A18"/>
+  </g>
+
+  <text x="40" y="220" font-size="10" fill="#B5B0AA">app icon · 1024×1024 export · 也作为 favicon / dock</text>
+
+  <!-- ============ Variant B: mark + wordmark ============ -->
+  <text x="320" y="100" font-size="10" letter-spacing="1.6" fill="#8A8682">VARIANT B · MARK + WORDMARK</text>
+
+  <g transform="translate(320, 130)">
+    <line x1="0" y1="0" x2="180" y2="0" stroke="#1A1A18" stroke-width="1.5"/>
+    <rect x="50" y="-7" width="40" height="14" fill="#1A1A18"/>
+
+    <line x1="0" y1="26" x2="180" y2="26" stroke="#1A1A18" stroke-width="1.5"/>
+    <rect x="100" y="19" width="40" height="14" fill="#1A1A18"/>
+
+    <text x="0" y="80" font-size="34" font-weight="500" fill="#1A1A18" letter-spacing="-0.5">lane</text>
+  </g>
+
+  <text x="320" y="220" font-size="10" fill="#B5B0AA">主要使用场景 · 顶栏 / 启动屏 / 网页 hero</text>
+
+  <!-- ============ Variant C: wordmark only ============ -->
+  <text x="560" y="100" font-size="10" letter-spacing="1.6" fill="#8A8682">VARIANT C · WORDMARK ONLY</text>
+
+  <g transform="translate(560, 160)">
+    <text x="0" y="0" font-size="44" font-weight="500" fill="#1A1A18" letter-spacing="-0.8">lane</text>
+    <circle cx="103" cy="-3" r="4" fill="#1A1A18"/>
+  </g>
+
+  <text x="560" y="220" font-size="10" fill="#B5B0AA">docs / readme / 极小尺寸 fallback</text>
+
+  <!-- divider -->
+  <line x1="40" y1="270" x2="760" y2="270" stroke="#E8E6E1"/>
+
+  <!-- ============ App icon mockup (rounded square, macOS style) ============ -->
+  <text x="40" y="310" font-size="11" letter-spacing="1.6" fill="#8A8682" font-weight="500">APP ICON · macOS 风格圆角方</text>
+
+  <!-- light variant -->
+  <g transform="translate(40, 340)">
+    <rect width="180" height="180" rx="40" fill="#FAFAF7" stroke="#E8E6E1"/>
+    <line x1="30" y1="78" x2="150" y2="78" stroke="#1A1A18" stroke-width="2.5"/>
+    <rect x="58" y="68" width="34" height="20" fill="#1A1A18"/>
+    <line x1="30" y1="118" x2="150" y2="118" stroke="#1A1A18" stroke-width="2.5"/>
+    <rect x="92" y="108" width="34" height="20" fill="#1A1A18"/>
+  </g>
+  <text x="40" y="540" font-size="10" fill="#B5B0AA">Light variant</text>
+
+  <!-- warm variant -->
+  <g transform="translate(240, 340)">
+    <rect width="180" height="180" rx="40" fill="#F5E8DD"/>
+    <line x1="30" y1="78" x2="150" y2="78" stroke="#1A1A18" stroke-width="2.5"/>
+    <rect x="58" y="68" width="34" height="20" fill="#1A1A18"/>
+    <line x1="30" y1="118" x2="150" y2="118" stroke="#1A1A18" stroke-width="2.5"/>
+    <rect x="92" y="108" width="34" height="20" fill="#1A1A18"/>
+  </g>
+  <text x="240" y="540" font-size="10" fill="#B5B0AA">Warm peach (signature)</text>
+
+  <!-- dark variant -->
+  <g transform="translate(440, 340)">
+    <rect width="180" height="180" rx="40" fill="#1A1A18"/>
+    <line x1="30" y1="78" x2="150" y2="78" stroke="#FAFAF7" stroke-width="2.5"/>
+    <rect x="58" y="68" width="34" height="20" fill="#FAFAF7"/>
+    <line x1="30" y1="118" x2="150" y2="118" stroke="#FAFAF7" stroke-width="2.5"/>
+    <rect x="92" y="108" width="34" height="20" fill="#FAFAF7"/>
+  </g>
+  <text x="440" y="540" font-size="10" fill="#B5B0AA">Dark (system dark mode)</text>
+
+  <!-- inverted -->
+  <g transform="translate(640, 340)">
+    <rect width="120" height="120" rx="28" fill="#FFFFFF" stroke="#E8E6E1"/>
+    <line x1="20" y1="52" x2="100" y2="52" stroke="#1A1A18" stroke-width="2"/>
+    <rect x="38" y="45" width="22" height="14" fill="#1A1A18"/>
+    <line x1="20" y1="78" x2="100" y2="78" stroke="#1A1A18" stroke-width="2"/>
+    <rect x="60" y="71" width="22" height="14" fill="#1A1A18"/>
+  </g>
+  <text x="640" y="480" font-size="10" fill="#B5B0AA">小尺寸 · 16/32px</text>
+
+  <!-- footer note -->
+  <text x="40" y="580" font-size="10" fill="#B5B0AA">FAFAF7 · 1A1A18 · F5E8DD · E8E6E1   /   General Sans Medium 500</text>
+</svg>
