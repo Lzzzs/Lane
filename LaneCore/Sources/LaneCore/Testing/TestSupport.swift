@@ -25,4 +25,12 @@ enum TestSupport {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("store.db")
     }
+
+    static func encode<T: Encodable>(_ value: T) throws -> Data {
+        try JSONEncoder().encode(value)
+    }
+
+    static func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        try JSONDecoder().decode(type, from: data)
+    }
 }
