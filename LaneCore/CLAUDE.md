@@ -43,6 +43,6 @@ All code is under one target named `LaneCore`. Subdirectories are organisational
 ## Conventions
 
 - Plain SQL with parameterised queries (no GRDB query builders), to keep the surface obvious and portable
-- All tests use in-memory `DatabaseQueue` via `Database.makeInMemoryPool()` — never touch disk
+- All tests use in-memory `DatabaseQueue` via `Database.makeInMemoryQueue()` — never touch disk
 - Tests use `Calendar(identifier: .gregorian)` and explicit `DateComponents` for deterministic dates
 - Date columns store `Date` values; the time component is ignored — treat `start_date`/`end_date` as local dates
