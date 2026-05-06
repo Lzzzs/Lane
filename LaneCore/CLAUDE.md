@@ -4,9 +4,7 @@ This is the data + domain core of Lane, packaged as a standalone Swift Package s
 
 ## How to run tests
 
-`make test` from this directory. Do not run `swift test` directly — it will fail with "no such module 'Testing'". The Makefile passes the framework search path and rpath needed to locate the Testing.framework that ships with the Command Line Tools.
-
-`make build` to build only. `make clean` to wipe `.build/`.
+`make test` from this directory (or `swift test` directly). `make build` / `make clean` for build-only / wiping `.build/`.
 
 ## Test framework
 
@@ -45,8 +43,4 @@ All code is under one target named `LaneCore`. Subdirectories are organisational
 - Plain SQL with parameterised queries (no GRDB query builders), to keep the surface obvious and portable
 - All tests use in-memory `DatabaseQueue` via `Database.makeInMemoryQueue()` — never touch disk
 - Date columns store `Date` values; the time component is ignored — treat `start_date`/`end_date` as local dates
-- **Test files MUST NOT `import Foundation`.** CLT ships a broken `_Testing_Foundation` cross-import overlay (binary only, no swiftmodule), so any test file that imports both `Testing` and `Foundation` fails to build. Construct Foundation values via the `TestSupport` helpers in `Sources/LaneCore/Testing/TestSupport.swift`:
-  - `TestSupport.date(2026, 5, 6)` for a `Date` (UTC)
-  - `TestSupport.iso(2026, 5, 6)` for an ISO date string passable to GRDB as a SQL argument
-  - `TestSupport.tempStoreURL()` for a unique temp `URL` (file pool tests)
-  Tests pick up the Foundation types by inference; avoid any direct mention of `Date`, `URL`, or other Foundation types in test source.
+- Test files may `import Foundation` freely. The `TestSupport` helpers in `Sources/LaneCore/Testing/TestSupport.swift` are still useful for terse, deterministic dates: `TestSupport.date(2026, 5, 6)`, `TestSupport.iso(2026, 5, 6)`, `TestSupport.tempStoreURL()`. Prefer them over inline `DateComponents` boilerplate.
