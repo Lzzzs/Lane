@@ -44,5 +44,9 @@ All code is under one target named `LaneCore`. Subdirectories are organisational
 
 - Plain SQL with parameterised queries (no GRDB query builders), to keep the surface obvious and portable
 - All tests use in-memory `DatabaseQueue` via `Database.makeInMemoryQueue()` — never touch disk
-- Tests use `Calendar(identifier: .gregorian)` and explicit `DateComponents` for deterministic dates
 - Date columns store `Date` values; the time component is ignored — treat `start_date`/`end_date` as local dates
+- **Test files MUST NOT `import Foundation`.** CLT ships a broken `_Testing_Foundation` cross-import overlay (binary only, no swiftmodule), so any test file that imports both `Testing` and `Foundation` fails to build. Construct Foundation values via the `TestSupport` helpers in `Sources/LaneCore/Testing/TestSupport.swift`:
+  - `TestSupport.date(2026, 5, 6)` for a `Date` (UTC)
+  - `TestSupport.iso(2026, 5, 6)` for an ISO date string passable to GRDB as a SQL argument
+  - `TestSupport.tempStoreURL()` for a unique temp `URL` (file pool tests)
+  Tests pick up the Foundation types by inference; avoid any direct mention of `Date`, `URL`, or other Foundation types in test source.
