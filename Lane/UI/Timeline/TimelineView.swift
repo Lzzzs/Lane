@@ -6,6 +6,7 @@ struct TimelineView: View {
     @Environment(TimelineStore.self) private var timeline
 
     let onSelect: (String) -> Void
+    @Binding var isAtToday: Bool
 
     static let titleColumnWidth: CGFloat = 200
     static let timeAxisHeight: CGFloat = 56
@@ -45,6 +46,7 @@ struct TimelineView: View {
                             pendingScrollToToday = false
                             let viewW = proxy.size.width
                             hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
+                            updateIsAtToday(viewWidth: viewW, geometry: g)
                         }
                     }
                     .onChange(of: timeline.jumpToTodayCounter) { _, _ in
@@ -52,18 +54,16 @@ struct TimelineView: View {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
                         }
+                        // Re-evaluate after scroll lands.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            updateIsAtToday(viewWidth: viewW, geometry: g)
+                        }
                     }
-                    .onChange(of: timeline.effectiveDayWidth) { oldWidth, newWidth in
-                        // When the day-width changes outside of an active pinch
-                        // (i.e. the user clicked a granularity preset), keep the
-                        // visible centre on the same date by rescaling the scroll
-                        // offset proportionally.
-                        guard zoomBaseline == nil, oldWidth > 0 else { return }
-                        let viewW = proxy.size.width
-                        let centerInCanvas = hScrollOffsetX + viewW / 2
-                        let scale = newWidth / oldWidth
-                        let newCenter = centerInCanvas * scale
-                        hScrollOffsetX = max(0, newCenter - viewW / 2)
+                    .onChange(of: hScrollOffsetX) { _, _ in
+                        updateIsAtToday(viewWidth: proxy.size.width, geometry: g)
+                    }
+                    .onChange(of: timeline.effectiveDayWidth) { _, _ in
+                        updateIsAtToday(viewWidth: proxy.size.width, geometry: g)
                     }
                     .gesture(zoomGesture(viewWidth: proxy.size.width))
                 }
@@ -107,6 +107,14 @@ struct TimelineView: View {
 
     private func today() -> Date {
         Calendar(identifier: .gregorian).startOfDay(for: Date())
+    }
+
+    private func updateIsAtToday(viewWidth: CGFloat, geometry: TimelineGeometry) {
+        let center = hScrollOffsetX + viewWidth / 2
+        let todayX = geometry.x(for: today())
+        let tolerance = max(60, viewWidth * 0.1)
+        let next = abs(center - todayX) < tolerance
+        if isAtToday != next { isAtToday = next }
     }
 
     private var titleColumn: some View {

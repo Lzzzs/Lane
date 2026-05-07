@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var showingNewRequirement = false
     @State private var showingSettings = false
     @State private var editingRequirementId: String? = nil
+    @State private var isCanvasAtToday: Bool = true
 
     @Namespace private var granularitySelection
 
@@ -16,8 +17,11 @@ struct ContentView: View {
             topBar
             HairLine()
             HStack(spacing: 0) {
-                TimelineView(onSelect: { editingRequirementId = $0 })
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                TimelineView(
+                    onSelect: { editingRequirementId = $0 },
+                    isAtToday: $isCanvasAtToday
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 HairLine(orientation: .vertical)
                 TodayPanel(onSelect: { editingRequirementId = $0 })
                     .frame(width: 320)
@@ -105,7 +109,9 @@ struct ContentView: View {
     private var granularityPill: some View {
         HStack(spacing: 0) {
             ForEach(TimelineGranularity.allCases) { g in
-                let isActive = timeline.isUsingPreset && timeline.granularity == g
+                let isActive = timeline.isUsingPreset
+                    && timeline.granularity == g
+                    && isCanvasAtToday
                 Button {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                         timeline.setGranularity(g)

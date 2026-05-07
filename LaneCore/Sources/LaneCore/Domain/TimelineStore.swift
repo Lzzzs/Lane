@@ -67,6 +67,7 @@ public final class TimelineStore {
     public func setGranularity(_ g: TimelineGranularity) {
         granularity = g
         customDayWidth = nil
+        jumpToToday()
     }
 
     /// UI listens to `jumpToTodayCounter` via `.onChange` and scrolls to today.
