@@ -48,7 +48,6 @@ targets:
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "14.0"
         NSHumanReadableCopyright: "Copyright © 2026 Lzzzs."
-        ATSApplicationFontsPath: "Fonts"
         NSPrincipalClass: NSApplication
 
 schemes:

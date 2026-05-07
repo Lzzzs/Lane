@@ -3,6 +3,10 @@ import LaneCore
 
 @main
 struct LaneApp: App {
+    init() {
+        FontRegistration.registerBundledFonts()
+    }
+
     var body: some Scene {
         WindowGroup("Lane") {
             ContentView()
