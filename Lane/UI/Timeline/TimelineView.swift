@@ -12,50 +12,61 @@ struct TimelineView: View {
     static let laneHeaderHeight: CGFloat = 40
 
     var body: some View {
-        GeometryReader { proxy in
-            let availableTimelineWidth = max(0, proxy.size.width - Self.titleColumnWidth)
-            let g = TimelineGeometry(
-                viewportStart: timeline.viewportStart,
-                dayWidth: timeline.effectiveDayWidth)
-            let canvasWidth = visibleCanvasWidth()
+        let g = TimelineGeometry(
+            viewportStart: timeline.viewportStart,
+            dayWidth: timeline.effectiveDayWidth)
+        let canvasWidth = visibleCanvasWidth()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 0) {
-                    titleColumn
-                        .frame(width: Self.titleColumnWidth, alignment: .leading)
-                    ZStack(alignment: .topLeading) {
-                        timelineCanvas(geometry: g, width: max(canvasWidth, availableTimelineWidth))
-                        TodayLine(geometry: g)
+        ScrollView(.vertical, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 0) {
+                titleColumn
+                    .frame(width: Self.titleColumnWidth, alignment: .leading)
+
+                ScrollViewReader { hProxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        ZStack(alignment: .topLeading) {
+                            timelineCanvas(geometry: g, width: canvasWidth)
+                            TodayLine(geometry: g)
+                            // Anchor view used by ScrollViewReader to scroll to today.
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .offset(x: g.x(for: today()) - 1)
+                                .id("today")
+                        }
+                        .frame(width: canvasWidth, alignment: .topLeading)
                     }
-                    .frame(width: max(canvasWidth, availableTimelineWidth), alignment: .topLeading)
+                    .onAppear { scrollToToday(hProxy) }
+                    .onChange(of: timeline.jumpToTodayCounter) { _, _ in
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            scrollToToday(hProxy)
+                        }
+                    }
+                    .onChange(of: timeline.granularity) { _, _ in
+                        scrollToToday(hProxy)
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(LaneColors.bgBase)
-            .gesture(zoomGesture(availableWidth: availableTimelineWidth))
-            .onAppear { timeline.fitTo(availableWidth: availableTimelineWidth) }
-            .onChange(of: availableTimelineWidth) { _, newWidth in
-                timeline.fitTo(availableWidth: newWidth)
-            }
-            .onChange(of: timeline.granularity) { _, _ in
-                timeline.fitTo(availableWidth: availableTimelineWidth)
-            }
-            .onChange(of: timeline.effectiveDayWidth) { _, _ in
-                timeline.fitTo(availableWidth: availableTimelineWidth)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(LaneColors.bgBase)
+        .gesture(zoomGesture)
     }
 
-    private func zoomGesture(availableWidth: CGFloat) -> some Gesture {
+    private var zoomGesture: some Gesture {
         MagnifyGesture(minimumScaleDelta: 0.05)
             .onChanged { value in
                 let baseline = timeline.effectiveDayWidth
                 let target = baseline * value.magnification
                 timeline.setDayWidth(target)
             }
-            .onEnded { _ in
-                timeline.fitTo(availableWidth: availableWidth)
-            }
+    }
+
+    private func scrollToToday(_ proxy: ScrollViewProxy) {
+        proxy.scrollTo("today", anchor: .center)
+    }
+
+    private func today() -> Date {
+        Calendar(identifier: .gregorian).startOfDay(for: Date())
     }
 
     private var titleColumn: some View {

@@ -98,8 +98,7 @@ struct ContentView: View {
             }
         }
         .padding(.horizontal, 14)
-        .frame(height: 38)
-        .padding(.top, 4)
+        .frame(height: 36)
     }
 
     private var granularityPill: some View {

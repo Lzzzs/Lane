@@ -41,12 +41,17 @@ public final class TimelineStore {
 
     private let calendar: Calendar = Calendar(identifier: .gregorian)
 
+    /// Total days the canvas covers, centered on today. Wide enough that
+    /// a horizontal scroll lets the user pan a year either way.
+    public static let canvasRangeDays: Int = 365
+
+    public private(set) var jumpToTodayCounter: Int = 0
+
     public init() {
         let cal = Calendar(identifier: .gregorian)
         let today = cal.startOfDay(for: Date())
-        let half = TimelineGranularity.week.defaultVisibleDays / 2
-        viewportStart = cal.date(byAdding: .day, value: -half, to: today)!
-        viewportEnd   = cal.date(byAdding: .day, value:  half, to: today)!
+        viewportStart = cal.date(byAdding: .day, value: -Self.canvasRangeDays, to: today)!
+        viewportEnd   = cal.date(byAdding: .day, value:  Self.canvasRangeDays, to: today)!
     }
 
     /// Effective px-per-day used for layout.
@@ -65,31 +70,18 @@ public final class TimelineStore {
         jumpToToday()
     }
 
+    /// UI listens to `jumpToTodayCounter` via `.onChange` and scrolls to today.
     public func jumpToToday() {
-        let today = calendar.startOfDay(for: Date())
-        let half = granularity.defaultVisibleDays / 2
-        viewportStart = calendar.date(byAdding: .day, value: -half, to: today)!
-        viewportEnd   = calendar.date(byAdding: .day, value:  half, to: today)!
+        jumpToTodayCounter &+= 1
     }
 
-    public func scroll(byDays days: Int) {
-        viewportStart = calendar.date(byAdding: .day, value: days, to: viewportStart)!
-        viewportEnd   = calendar.date(byAdding: .day, value: days, to: viewportEnd)!
-    }
-
-    /// Resize the viewport so it spans `availableWidth / effectiveDayWidth` days,
-    /// keeping today centered when today is currently in view.
-    public func fitTo(availableWidth: CGFloat) {
-        let dayWidth = effectiveDayWidth
-        guard dayWidth > 0, availableWidth > 0 else { return }
-        let baseline = customDayWidth == nil ? granularity.defaultVisibleDays : 7
-        let totalDays = max(baseline, Int(availableWidth / dayWidth))
-        let half = totalDays / 2
+    /// Re-anchor the canvas around today. The canvas is always wide enough to
+    /// pan a year either way; this just resets the bounds when the date rolls
+    /// over or zoom changes.
+    public func reanchorAroundToday() {
         let today = calendar.startOfDay(for: Date())
-        let pinnedToday = today >= viewportStart && today <= viewportEnd
-        let anchor = pinnedToday ? today : calendar.startOfDay(for: viewportStart)
-        viewportStart = calendar.date(byAdding: .day, value: -half, to: anchor)!
-        viewportEnd = calendar.date(byAdding: .day, value: totalDays - half, to: anchor)!
+        viewportStart = calendar.date(byAdding: .day, value: -Self.canvasRangeDays, to: today)!
+        viewportEnd   = calendar.date(byAdding: .day, value:  Self.canvasRangeDays, to: today)!
     }
 
     /// User zoomed in/out. `factor` > 1 zooms in (wider days),
