@@ -1,19 +1,19 @@
 import Foundation
 
-enum RequirementStatus: String, Codable, Equatable {
+public enum RequirementStatus: String, Codable, Equatable {
     case active
     case archived
 }
 
-struct Requirement: Codable, Equatable, Identifiable {
-    var id: String
-    var groupId: String
-    var title: String
-    var description: String
-    var templateId: String?
-    var status: RequirementStatus
-    var sortOrder: Int
-    var createdAt: Date
-    var updatedAt: Date
-    var deletedAt: Date?
+public struct Requirement: Codable, Equatable, Identifiable {
+    public var id: String
+    public var groupId: String
+    public var title: String
+    public var description: String
+    public var templateId: String?
+    public var status: RequirementStatus
+    public var sortOrder: Int
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var deletedAt: Date?
 }

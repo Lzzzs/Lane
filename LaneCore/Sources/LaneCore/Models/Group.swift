@@ -1,10 +1,10 @@
 import Foundation
 
-struct Group: Codable, Equatable, Identifiable {
-    var id: String
-    var name: String
-    var color: String
-    var icon: String
-    var sortOrder: Int
-    var createdAt: Date
+public struct Group: Codable, Equatable, Identifiable {
+    public var id: String
+    public var name: String
+    public var color: String
+    public var icon: String
+    public var sortOrder: Int
+    public var createdAt: Date
 }
