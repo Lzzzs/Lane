@@ -4,6 +4,8 @@ import LaneCore
 struct TodayPanel: View {
     @Environment(AppStore.self) private var app
 
+    let onSelect: (String) -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -54,10 +56,16 @@ struct TodayPanel: View {
                     .padding(.vertical, 12)
             } else {
                 ForEach(inProgressRequirements) { req in
-                    TodayCard(requirement: req,
-                              groupName: groupName(for: req),
-                              groupColor: groupColor(for: req),
-                              currentStage: currentStage(for: req))
+                    Button {
+                        onSelect(req.id)
+                    } label: {
+                        TodayCard(requirement: req,
+                                  groupName: groupName(for: req),
+                                  groupColor: groupColor(for: req),
+                                  currentStage: currentStage(for: req))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

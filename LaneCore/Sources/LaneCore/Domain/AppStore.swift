@@ -33,6 +33,8 @@ public final class AppStore {
         stagesByRequirement = Dictionary(grouping: allStages, by: \.requirementId)
     }
 
+    // MARK: - Requirements
+
     public func createRequirement(
         title: String,
         groupId: String,
@@ -85,5 +87,92 @@ public final class AppStore {
 
         try await load()
         return req
+    }
+
+    public func updateRequirement(_ req: Requirement) async throws {
+        var updated = req
+        updated.updatedAt = Date()
+        try reqRepo.upsert(updated)
+        try await load()
+    }
+
+    public func archiveRequirement(id: String) async throws {
+        guard let req = try reqRepo.find(id: id) else { return }
+        var updated = req
+        updated.status = .archived
+        updated.updatedAt = Date()
+        try reqRepo.upsert(updated)
+        try await load()
+    }
+
+    public func deleteRequirement(id: String) async throws {
+        try reqRepo.softDelete(id: id, at: Date())
+        try await load()
+    }
+
+    // MARK: - Stages
+
+    public func updateStage(_ stage: StageInstance) async throws {
+        try stageRepo.upsert(stage)
+        try await load()
+    }
+
+    public func updateStageDates(
+        id: String,
+        start: Date?,
+        end: Date?
+    ) async throws {
+        guard let stage = try stageRepo.find(id: id) else { return }
+        var updated = stage
+        updated.startDate = start
+        updated.endDate = end
+        // Auto-update status: scheduled = pending unless already done/skipped; if today
+        // falls in the new window, mark active.
+        let cal = Calendar(identifier: .gregorian)
+        let today = cal.startOfDay(for: Date())
+        if let s = start, let e = end,
+           updated.status != .done, updated.status != .skipped {
+            let sd = cal.startOfDay(for: s)
+            let ed = cal.startOfDay(for: e)
+            updated.status = (today >= sd && today <= ed) ? .active : .pending
+        }
+        try stageRepo.upsert(updated)
+        try await load()
+    }
+
+    public func updateStageStatus(id: String, status: StageStatus) async throws {
+        guard let stage = try stageRepo.find(id: id) else { return }
+        var updated = stage
+        updated.status = status
+        try stageRepo.upsert(updated)
+        try await load()
+    }
+
+    // MARK: - Groups
+
+    public func createGroup(name: String, color: String, icon: String) async throws -> Group {
+        let nextSortOrder = groups.count
+        let id = "g_\(UUID().uuidString.prefix(8).lowercased())"
+        let group = Group(
+            id: id,
+            name: name,
+            color: color,
+            icon: icon,
+            sortOrder: nextSortOrder,
+            createdAt: Date()
+        )
+        try groupRepo.upsert(group)
+        try await load()
+        return group
+    }
+
+    public func updateGroup(_ group: Group) async throws {
+        try groupRepo.upsert(group)
+        try await load()
+    }
+
+    public func deleteGroup(id: String) async throws {
+        try groupRepo.delete(id: id)
+        try await load()
     }
 }

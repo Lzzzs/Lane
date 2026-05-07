@@ -31,7 +31,11 @@ struct NewRequirementSheet: View {
                 AllCapsLabel(text: "GROUP", size: 10)
                 HStack(spacing: 8) {
                     ForEach(app.groups) { group in
-                        groupPill(group)
+                        GroupPill(
+                            group: group,
+                            selected: group.id == selectedGroupId,
+                            action: { selectedGroupId = group.id }
+                        )
                     }
                 }
             }
@@ -63,30 +67,6 @@ struct NewRequirementSheet: View {
                 selectedGroupId = app.groups.first?.id ?? ""
             }
         }
-    }
-
-    @ViewBuilder
-    private func groupPill(_ group: LaneCore.Group) -> some View {
-        let selected = group.id == selectedGroupId
-        Button {
-            selectedGroupId = group.id
-        } label: {
-            HStack(spacing: 6) {
-                GroupDot(colorHex: group.color, size: 6)
-                Text(group.name)
-                    .font(LaneFonts.medium(size: 11))
-                    .foregroundStyle(selected ? LaneColors.ink : LaneColors.inkMuted)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(selected ? LaneColors.tagBg : Color.clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(selected ? LaneColors.borderRule : LaneColors.borderHair, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-        }
-        .buttonStyle(.plain)
     }
 
     private func create() {

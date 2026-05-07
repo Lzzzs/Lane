@@ -5,6 +5,8 @@ struct TimelineView: View {
     @Environment(AppStore.self) private var app
     @Environment(TimelineStore.self) private var timeline
 
+    let onSelect: (String) -> Void
+
     static let titleColumnWidth: CGFloat = 200
     static let timeAxisHeight: CGFloat = 32
     static let laneHeaderHeight: CGFloat = 40
@@ -63,15 +65,21 @@ struct TimelineView: View {
 
                 VStack(spacing: 0) {
                     ForEach(reqs) { req in
-                        Text(req.title)
-                            .font(LaneFonts.body(size: 13))
-                            .foregroundStyle(LaneColors.ink)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, LaneSpacing.cardPaddingS + 12)
-                            .padding(.trailing, 8)
-                            .frame(height: LaneSpacing.trackRowHeight, alignment: .leading)
+                        Button {
+                            onSelect(req.id)
+                        } label: {
+                            Text(req.title)
+                                .font(LaneFonts.body(size: 13))
+                                .foregroundStyle(LaneColors.ink)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.leading, LaneSpacing.cardPaddingS + 12)
+                                .padding(.trailing, 8)
+                                .frame(height: LaneSpacing.trackRowHeight, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -100,10 +108,16 @@ struct TimelineView: View {
             Color.clear.frame(height: Self.laneHeaderHeight)
             VStack(spacing: 0) {
                 ForEach(reqs) { req in
-                    StagesRow(
-                        stages: app.stagesByRequirement[req.id] ?? [],
-                        geometry: geometry
-                    )
+                    Button {
+                        onSelect(req.id)
+                    } label: {
+                        StagesRow(
+                            stages: app.stagesByRequirement[req.id] ?? [],
+                            geometry: geometry
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             HairLine()
