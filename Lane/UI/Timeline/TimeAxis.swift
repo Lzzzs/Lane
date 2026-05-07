@@ -10,37 +10,134 @@ struct TimeAxis: View {
     private static let yearStripeHeight: CGFloat = 18
     private static let labelBottomPadding: CGFloat = 6
 
+    enum DensityMode {
+        case everyDay
+        case everyOther
+        case weekly        // Mondays
+        case biweekly      // Every other Monday
+        case monthly       // 1st of month
+        case quarterly     // Jan / Apr / Jul / Oct 1st
+    }
+
     var body: some View {
         let cal = Calendar(identifier: .gregorian)
         let totalDays = (cal.dateComponents([.day],
             from: geometry.viewportStart, to: viewportEnd).day ?? 0)
         let today = cal.startOfDay(for: today())
+        let mode = densityMode(for: geometry.dayWidth)
         ZStack(alignment: .topLeading) {
             yearStripe(totalDays: totalDays, cal: cal)
-            ZStack(alignment: .topLeading) {
-                ForEach(0...max(0, totalDays), id: \.self) { offset in
-                    let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
-                    let isToday = cal.isDate(date, inSameDayAs: today)
-                    if shouldShowLabel(for: date, today: today, cal: cal) {
-                        dayLabel(for: date, today: today, cal: cal)
-                            .fixedSize(horizontal: isToday, vertical: false)
-                            .frame(width: isToday ? nil : geometry.dayWidth,
-                                   height: Self.height - Self.yearStripeHeight - Self.labelBottomPadding,
-                                   alignment: .topLeading)
-                            .offset(x: geometry.x(for: date),
-                                    y: Self.yearStripeHeight)
-                    }
+            tickStripe(totalDays: totalDays, mode: mode, today: today, cal: cal)
+            labelStripe(totalDays: totalDays, mode: mode, today: today, cal: cal)
+        }
+        .frame(height: Self.height)
+    }
+
+    // MARK: - Density
+
+    private func densityMode(for dayWidth: CGFloat) -> DensityMode {
+        switch dayWidth {
+        case 50...:    return .everyDay
+        case 28..<50:  return .everyOther
+        case 14..<28:  return .weekly
+        case 8..<14:   return .biweekly
+        case 4..<8:    return .monthly
+        default:       return .quarterly
+        }
+    }
+
+    private func showsWeekday(_ mode: DensityMode) -> Bool {
+        switch mode {
+        case .everyDay, .everyOther: return granularity != .month
+        default: return false
+        }
+    }
+
+    private func showsLabel(for date: Date, today: Date,
+                            mode: DensityMode, cal: Calendar) -> Bool {
+        if cal.isDate(date, inSameDayAs: today) { return true }
+        switch mode {
+        case .everyDay:
+            return true
+        case .everyOther:
+            // Anchor the rhythm to a fixed reference (Sunday = day-of-year even/odd
+            // would jitter on year boundaries; instead, stride from canvas start).
+            let offset = cal.dateComponents([.day],
+                from: geometry.viewportStart, to: date).day ?? 0
+            return offset.isMultiple(of: 2)
+        case .weekly:
+            return cal.component(.weekday, from: date) == 2  // Monday
+        case .biweekly:
+            guard cal.component(.weekday, from: date) == 2 else { return false }
+            let week = cal.component(.weekOfYear, from: date)
+            return week.isMultiple(of: 2)
+        case .monthly:
+            return cal.component(.day, from: date) == 1
+        case .quarterly:
+            let day = cal.component(.day, from: date)
+            let month = cal.component(.month, from: date)
+            return day == 1 && [1, 4, 7, 10].contains(month)
+        }
+    }
+
+    private func showsTick(for date: Date, today: Date,
+                           mode: DensityMode, cal: Calendar) -> Bool {
+        if mode == .everyDay { return false }    // Labels are dense enough.
+        if cal.isDate(date, inSameDayAs: today) { return false }
+        return !showsLabel(for: date, today: today, mode: mode, cal: cal)
+    }
+
+    // MARK: - Strips
+
+    @ViewBuilder
+    private func tickStripe(totalDays: Int, mode: DensityMode,
+                            today: Date, cal: Calendar) -> some View {
+        let tickColor = LaneColors.borderHair
+        let tickHeight: CGFloat = mode == .quarterly ? 6 : 4
+        let baselineY = Self.height - Self.labelBottomPadding - tickHeight
+        ZStack(alignment: .topLeading) {
+            ForEach(0...max(0, totalDays), id: \.self) { offset in
+                let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
+                if showsTick(for: date, today: today, mode: mode, cal: cal) {
+                    Rectangle()
+                        .fill(tickColor)
+                        .frame(width: 1, height: tickHeight)
+                        .offset(x: geometry.x(for: date), y: baselineY)
                 }
             }
         }
-        .frame(height: Self.height)
+    }
+
+    @ViewBuilder
+    private func labelStripe(totalDays: Int, mode: DensityMode,
+                             today: Date, cal: Calendar) -> some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(0...max(0, totalDays), id: \.self) { offset in
+                let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
+                let isToday = cal.isDate(date, inSameDayAs: today)
+                if showsLabel(for: date, today: today, mode: mode, cal: cal) {
+                    dayLabel(for: date, today: today, mode: mode, cal: cal)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(height: Self.height - Self.yearStripeHeight - Self.labelBottomPadding,
+                               alignment: .topLeading)
+                        .offset(x: labelX(for: date, isToday: isToday),
+                                y: Self.yearStripeHeight)
+                }
+            }
+        }
+    }
+
+    /// Place wide labels (today, monthly, quarterly) so they don't lean off
+    /// the right edge of their day's tick.
+    private func labelX(for date: Date, isToday: Bool) -> CGFloat {
+        // For "every day" / "every other" densities, fixedSize labels can
+        // overflow the day cell; align so today's label centers on its tick.
+        geometry.x(for: date)
     }
 
     @ViewBuilder
     private func yearStripe(totalDays: Int, cal: Calendar) -> some View {
         ZStack(alignment: .topLeading) {
-            // Year label at the start of every year that intersects the canvas,
-            // plus one for the first visible date so the user always sees an anchor.
             ForEach(yearAnchors(totalDays: totalDays, cal: cal), id: \.date) { anchor in
                 Text(anchor.label)
                     .font(LaneFonts.mono(size: 10))
@@ -66,13 +163,11 @@ struct TimeAxis: View {
         let startYear = cal.component(.year, from: geometry.viewportStart)
         let endYear = cal.component(.year, from: viewportEnd)
 
-        // First visible date acts as the anchor for the starting year.
         anchors.append(YearAnchor(
             date: geometry.viewportStart,
             label: String(startYear)
         ))
 
-        // Jan 1 of each year strictly after start, up to and including endYear.
         var year = startYear + 1
         while year <= endYear {
             var c = DateComponents()
@@ -86,31 +181,13 @@ struct TimeAxis: View {
         return anchors
     }
 
-    private func shouldShowLabel(for date: Date, today: Date, cal: Calendar) -> Bool {
-        if cal.isDate(date, inSameDayAs: today) { return true }
-        // Density-aware: keep labels at least ~52pt apart so they don't pile up
-        // at small day-widths (custom zoom or month preset).
-        let step = labelStep(dayWidth: geometry.dayWidth)
-        let offset = cal.dateComponents([.day],
-            from: geometry.viewportStart, to: date).day ?? 0
-        if offset % step == 0 { return true }
-        // Always include the 1st of each month as a reliable monthly anchor.
-        if cal.component(.day, from: date) == 1 { return true }
-        return false
-    }
-
-    private func labelStep(dayWidth: CGFloat) -> Int {
-        let minPxBetween: CGFloat = 52
-        guard dayWidth > 0 else { return 1 }
-        return max(1, Int((minPxBetween / dayWidth).rounded(.up)))
-    }
-
     @ViewBuilder
-    private func dayLabel(for date: Date, today: Date, cal: Calendar) -> some View {
+    private func dayLabel(for date: Date, today: Date, mode: DensityMode,
+                          cal: Calendar) -> some View {
         let isToday = cal.isDate(date, inSameDayAs: today)
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(monthDay(date))
+                Text(label(for: date, mode: mode))
                     .font(LaneFonts.mono(size: 10))
                     .foregroundStyle(isToday ? LaneColors.ink : LaneColors.inkMuted)
                     .fontWeight(isToday ? .semibold : .regular)
@@ -125,7 +202,7 @@ struct TimeAxis: View {
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
             }
-            if granularity != .month {
+            if showsWeekday(mode) {
                 Text(weekday(date))
                     .font(LaneFonts.mono(size: 9))
                     .foregroundStyle(isToday ? LaneColors.inkMuted : LaneColors.inkFaint)
@@ -134,13 +211,21 @@ struct TimeAxis: View {
         .padding(.leading, 4)
     }
 
-    private func today() -> Date { Date() }
-
-    private func monthDay(_ d: Date) -> String {
+    private func label(for date: Date, mode: DensityMode) -> String {
         let f = DateFormatter()
-        f.dateFormat = "M/d"
-        return f.string(from: d)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        switch mode {
+        case .everyDay, .everyOther, .weekly, .biweekly:
+            f.dateFormat = "M/d"
+        case .monthly:
+            f.dateFormat = "MMM"
+        case .quarterly:
+            f.dateFormat = "MMM"
+        }
+        return f.string(from: date)
     }
+
+    private func today() -> Date { Date() }
 
     private func weekday(_ d: Date) -> String {
         let f = DateFormatter()
