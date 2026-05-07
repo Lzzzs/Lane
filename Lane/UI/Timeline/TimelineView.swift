@@ -27,22 +27,30 @@ struct TimelineView: View {
                         ZStack(alignment: .topLeading) {
                             timelineCanvas(geometry: g, width: canvasWidth)
                             TodayLine(geometry: g)
-                            // Anchor view used by ScrollViewReader to scroll to today.
-                            Color.clear
-                                .frame(width: 1, height: 1)
-                                .offset(x: g.x(for: today()) - 1)
-                                .id("today")
+                            // Anchor strip used by ScrollViewReader to scroll to today.
+                            // HStack spacers laid out so the marker's actual frame is at
+                            // today's x. (.offset is visual-only and ScrollViewReader
+                            // scrolls to layout position, not visual.)
+                            HStack(spacing: 0) {
+                                Color.clear.frame(width: max(0, g.x(for: today()) - 1))
+                                Color.clear.frame(width: 2).id("today")
+                                Spacer(minLength: 0)
+                            }
+                            .frame(width: canvasWidth, height: 1)
+                            .allowsHitTesting(false)
                         }
                         .frame(width: canvasWidth, alignment: .topLeading)
                     }
-                    .onAppear { scrollToToday(hProxy) }
+                    .onAppear {
+                        DispatchQueue.main.async { scrollToToday(hProxy) }
+                    }
                     .onChange(of: timeline.jumpToTodayCounter) { _, _ in
                         withAnimation(.easeInOut(duration: 0.25)) {
                             scrollToToday(hProxy)
                         }
                     }
                     .onChange(of: timeline.granularity) { _, _ in
-                        scrollToToday(hProxy)
+                        DispatchQueue.main.async { scrollToToday(hProxy) }
                     }
                 }
             }
