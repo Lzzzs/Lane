@@ -8,8 +8,10 @@ struct TimelineView: View {
     let onSelect: (String) -> Void
 
     static let titleColumnWidth: CGFloat = 200
-    static let timeAxisHeight: CGFloat = 32
+    static let timeAxisHeight: CGFloat = 48
     static let laneHeaderHeight: CGFloat = 40
+
+    @State private var zoomBaseline: CGFloat? = nil
 
     var body: some View {
         let g = TimelineGeometry(
@@ -61,11 +63,19 @@ struct TimelineView: View {
     }
 
     private var zoomGesture: some Gesture {
-        MagnifyGesture(minimumScaleDelta: 0.05)
+        MagnifyGesture(minimumScaleDelta: 0.02)
             .onChanged { value in
-                let baseline = timeline.effectiveDayWidth
-                let target = baseline * value.magnification
-                timeline.setDayWidth(target)
+                let base = zoomBaseline ?? timeline.effectiveDayWidth
+                if zoomBaseline == nil { zoomBaseline = base }
+                // Dampen the trackpad pinch — raw magnification is too eager.
+                let raw = value.magnification
+                let damped = raw >= 1
+                    ? 1 + (raw - 1) * 0.4
+                    : 1 - (1 - raw) * 0.4
+                timeline.setDayWidth(base * damped)
+            }
+            .onEnded { _ in
+                zoomBaseline = nil
             }
     }
 

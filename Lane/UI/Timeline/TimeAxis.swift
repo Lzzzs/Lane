@@ -6,25 +6,83 @@ struct TimeAxis: View {
     let granularity: TimelineGranularity
     let viewportEnd: Date
 
+    private static let height: CGFloat = 48
+    private static let yearStripeHeight: CGFloat = 16
+
     var body: some View {
         let cal = Calendar(identifier: .gregorian)
         let totalDays = (cal.dateComponents([.day],
             from: geometry.viewportStart, to: viewportEnd).day ?? 0)
-        let today = cal.startOfDay(for: Date())
+        let today = cal.startOfDay(for: today())
         ZStack(alignment: .topLeading) {
-            ForEach(0...max(0, totalDays), id: \.self) { offset in
-                let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
-                let isToday = cal.isDate(date, inSameDayAs: today)
-                if shouldShowLabel(for: date, today: today, cal: cal) {
-                    dayLabel(for: date, today: today, cal: cal)
-                        .fixedSize(horizontal: isToday, vertical: false)
-                        .frame(width: isToday ? nil : geometry.dayWidth,
-                               height: 32, alignment: .leading)
-                        .offset(x: geometry.x(for: date))
+            yearStripe(totalDays: totalDays, cal: cal)
+            ZStack(alignment: .topLeading) {
+                ForEach(0...max(0, totalDays), id: \.self) { offset in
+                    let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
+                    let isToday = cal.isDate(date, inSameDayAs: today)
+                    if shouldShowLabel(for: date, today: today, cal: cal) {
+                        dayLabel(for: date, today: today, cal: cal)
+                            .fixedSize(horizontal: isToday, vertical: false)
+                            .frame(width: isToday ? nil : geometry.dayWidth,
+                                   height: Self.height - Self.yearStripeHeight,
+                                   alignment: .leading)
+                            .offset(x: geometry.x(for: date),
+                                    y: Self.yearStripeHeight)
+                    }
                 }
             }
         }
-        .frame(height: 32)
+        .frame(height: Self.height)
+    }
+
+    @ViewBuilder
+    private func yearStripe(totalDays: Int, cal: Calendar) -> some View {
+        ZStack(alignment: .topLeading) {
+            // Year label at the start of every year that intersects the canvas,
+            // plus one for the first visible date so the user always sees an anchor.
+            ForEach(yearAnchors(totalDays: totalDays, cal: cal), id: \.date) { anchor in
+                Text(anchor.label)
+                    .font(LaneFonts.mono(size: 10))
+                    .tracking(1.0)
+                    .foregroundStyle(LaneColors.inkMuted)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(LaneColors.tagBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .offset(x: geometry.x(for: anchor.date) + 4, y: 2)
+            }
+        }
+        .frame(height: Self.yearStripeHeight)
+    }
+
+    private struct YearAnchor {
+        let date: Date
+        let label: String
+    }
+
+    private func yearAnchors(totalDays: Int, cal: Calendar) -> [YearAnchor] {
+        var anchors: [YearAnchor] = []
+        let startYear = cal.component(.year, from: geometry.viewportStart)
+        let endYear = cal.component(.year, from: viewportEnd)
+
+        // First visible date acts as the anchor for the starting year.
+        anchors.append(YearAnchor(
+            date: geometry.viewportStart,
+            label: String(startYear)
+        ))
+
+        // Jan 1 of each year strictly after start, up to and including endYear.
+        var year = startYear + 1
+        while year <= endYear {
+            var c = DateComponents()
+            c.year = year; c.month = 1; c.day = 1
+            if let janFirst = cal.date(from: c),
+               janFirst >= geometry.viewportStart, janFirst <= viewportEnd {
+                anchors.append(YearAnchor(date: janFirst, label: String(year)))
+            }
+            year += 1
+        }
+        return anchors
     }
 
     private func shouldShowLabel(for date: Date, today: Date, cal: Calendar) -> Bool {
@@ -65,6 +123,8 @@ struct TimeAxis: View {
         }
         .padding(.leading, 4)
     }
+
+    private func today() -> Date { Date() }
 
     private func monthDay(_ d: Date) -> String {
         let f = DateFormatter()
