@@ -33,7 +33,7 @@ struct LaneApp: App {
                 }
                 .frame(minWidth: 1000, minHeight: 540)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unified(showsTitle: false))
         .windowResizability(.contentSize)
     }
 }

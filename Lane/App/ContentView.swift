@@ -10,49 +10,41 @@ struct ContentView: View {
     @State private var editingRequirementId: String? = nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            HairLine()
-            HStack(spacing: 0) {
-                TimelineView(onSelect: { editingRequirementId = $0 })
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                HairLine(orientation: .vertical)
-                TodayPanel(onSelect: { editingRequirementId = $0 })
-                    .frame(width: 320)
-            }
+        HStack(spacing: 0) {
+            TimelineView(onSelect: { editingRequirementId = $0 })
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HairLine(orientation: .vertical)
+            TodayPanel(onSelect: { editingRequirementId = $0 })
+                .frame(width: 320)
         }
         .background(LaneColors.bgBase)
         .preferredColorScheme(.light)
+        .navigationTitle("Lane")
+        .toolbar { toolbarContent }
+        .onChange(of: app.groups.map(\.id)) { _, newIds in
+            for id in newIds where !timeline.visibleGroupIds.contains(id) {
+                timeline.visibleGroupIds.insert(id)
+            }
+        }
         .sheet(isPresented: $showingNewRequirement) {
-            NewRequirementSheet()
-                .environment(app)
+            NewRequirementSheet().environment(app)
         }
         .sheet(item: editingRequirementBinding) { wrapper in
-            EditRequirementSheet(requirementId: wrapper.id)
-                .environment(app)
+            EditRequirementSheet(requirementId: wrapper.id).environment(app)
         }
     }
 
-    private var editingRequirementBinding: Binding<IdentifiableString?> {
-        Binding(
-            get: { editingRequirementId.map(IdentifiableString.init) },
-            set: { editingRequirementId = $0?.id }
-        )
-    }
-
-    private var topBar: some View {
-        HStack(spacing: 14) {
-            // Traffic-light area on hidden title bar.
-            Spacer().frame(width: 64)
-
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
             HStack(spacing: 8) {
                 LaneMark()
-                    .frame(width: 28, height: 16)
+                    .frame(width: 24, height: 14)
                 AllCapsLabel(text: "lane", size: 11, color: LaneColors.ink, weight: .semibold)
             }
+        }
 
-            Spacer()
-
+        ToolbarItemGroup(placement: .principal) {
             ForEach(TimelineGranularity.allCases) { g in
                 Button {
                     timeline.setGranularity(g)
@@ -62,30 +54,25 @@ struct ContentView: View {
                         size: 10,
                         color: timeline.granularity == g ? LaneColors.ink : LaneColors.inkMuted
                     )
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
+        }
 
-            Divider().frame(height: 14).padding(.horizontal, 2)
-
+        ToolbarItemGroup(placement: .primaryAction) {
             Button {
                 showingNewGroup = true
             } label: {
                 Image(systemName: "rectangle.stack.badge.plus")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(LaneColors.ink)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("New group")
             .popover(isPresented: $showingNewGroup, arrowEdge: .top) {
-                NewGroupPopover()
-                    .environment(app)
+                NewGroupPopover().environment(app)
             }
 
             Button {
@@ -97,22 +84,18 @@ struct ContentView: View {
                     Text("New")
                         .font(LaneFonts.medium(size: 11))
                 }
-                .foregroundStyle(LaneColors.ink)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(LaneColors.borderRule, lineWidth: 1)
-                )
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
             .keyboardShortcut("n", modifiers: .command)
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 16)
-        .frame(height: 44)
-        .background(LaneColors.bgBase)
+    }
+
+    private var editingRequirementBinding: Binding<IdentifiableString?> {
+        Binding(
+            get: { editingRequirementId.map(IdentifiableString.init) },
+            set: { editingRequirementId = $0?.id }
+        )
     }
 
     private func shortLabel(_ g: TimelineGranularity) -> String {
@@ -143,11 +126,11 @@ struct LaneMark: View {
             ctx.fill(Path(lineRect1), with: inkColor)
             ctx.fill(Path(lineRect2), with: inkColor)
 
-            let seg1 = CGRect(x: size.width * 0.27, y: lineY1 - 2.5,
-                              width: size.width * 0.18, height: 5)
+            let seg1 = CGRect(x: size.width * 0.27, y: lineY1 - 2,
+                              width: size.width * 0.18, height: 4)
             ctx.fill(Path(seg1), with: inkColor)
-            let seg2 = CGRect(x: size.width * 0.50, y: lineY2 - 2.5,
-                              width: size.width * 0.18, height: 5)
+            let seg2 = CGRect(x: size.width * 0.50, y: lineY2 - 2,
+                              width: size.width * 0.18, height: 4)
             ctx.fill(Path(seg2), with: inkColor)
         }
     }

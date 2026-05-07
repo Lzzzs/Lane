@@ -5,6 +5,8 @@ struct StageSegment: View {
     let stage: StageInstance
     let geometry: TimelineGeometry
 
+    private static let barHeight: CGFloat = 22
+
     var body: some View {
         if let start = stage.startDate, let end = stage.endDate {
             let x = geometry.x(for: start)
@@ -12,67 +14,87 @@ struct StageSegment: View {
             content(width: w)
                 .offset(x: x)
         } else {
-            unscheduledPlaceholder
+            EmptyView()
         }
     }
 
     @ViewBuilder
     private func content(width: CGFloat) -> some View {
+        let showLabel = width >= 28
         ZStack(alignment: .leading) {
-            switch stage.status {
-            case .done:
-                doneStyle(width: width)
-            case .active:
-                activeStyle(width: width)
-            case .pending:
-                pendingStyle(width: width)
-            case .skipped:
-                skippedStyle(width: width)
-            }
-            if width >= 24 {
+            shape(width: width)
+            if showLabel {
                 Text(stage.name)
-                    .font(LaneFonts.body(size: 10))
-                    .foregroundStyle(stage.status == .done ? LaneColors.inkFaint : LaneColors.ink)
-                    .strikethrough(stage.status == .done)
+                    .font(LaneFonts.medium(size: 10))
+                    .tracking(0.2)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .padding(.horizontal, 4)
+                    .foregroundStyle(labelColor)
+                    .strikethrough(stage.status == .done)
+                    .padding(.horizontal, 8)
                     .frame(width: width, alignment: .leading)
             }
+            if stage.status == .active {
+                progressMarker(width: width)
+            }
         }
-        .frame(width: width, height: LaneSpacing.trackRowHeight - 8)
+        .frame(width: width, height: Self.barHeight)
     }
 
-    private func doneStyle(width: CGFloat) -> some View {
-        Rectangle()
+    @ViewBuilder
+    private func shape(width: CGFloat) -> some View {
+        switch stage.status {
+        case .done:
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LaneColors.tagBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(LaneColors.borderRule, lineWidth: 1)
+                )
+        case .active:
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LaneColors.bgCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(LaneColors.ink, lineWidth: 1)
+                )
+        case .pending:
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LaneColors.bgCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                        .foregroundStyle(LaneColors.inkFaint)
+                )
+        case .skipped:
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LaneColors.bgCard.opacity(0.7))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(LaneColors.borderHair, lineWidth: 1)
+                )
+        }
+    }
+
+    private func progressMarker(width: CGFloat) -> some View {
+        let raw = TimelineGeometry.progress(
+            start: stage.startDate!,
+            end: stage.endDate!,
+            today: Date()
+        )
+        let p = TimelineGeometry.quantize(raw)
+        return Rectangle()
             .fill(LaneColors.ink)
-            .frame(height: 1)
+            .frame(width: max(0, p * (width - 2)), height: 2)
+            .offset(x: 1, y: Self.barHeight / 2 - 1)
     }
 
-    private func activeStyle(width: CGFloat) -> some View {
-        let progress = TimelineGeometry.quantize(
-            TimelineGeometry.progress(start: stage.startDate!, end: stage.endDate!, today: Date()))
-        return ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 1)
-                .stroke(LaneColors.ink, lineWidth: 1)
-            RoundedRectangle(cornerRadius: 1)
-                .fill(LaneColors.ink)
-                .frame(width: max(0, progress * width))
+    private var labelColor: Color {
+        switch stage.status {
+        case .done:    return LaneColors.inkFaint
+        case .active:  return LaneColors.ink
+        case .pending: return LaneColors.inkMuted
+        case .skipped: return LaneColors.inkFaint
         }
-    }
-
-    private func pendingStyle(width: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 1)
-            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            .foregroundStyle(LaneColors.inkMuted)
-    }
-
-    private func skippedStyle(width: CGFloat) -> some View {
-        Rectangle()
-            .fill(LaneColors.inkFaint.opacity(0.3))
-    }
-
-    private var unscheduledPlaceholder: some View {
-        EmptyView()
     }
 }
