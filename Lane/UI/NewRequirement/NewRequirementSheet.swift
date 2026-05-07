@@ -184,23 +184,25 @@ private struct DeletableGroupPill: View {
             .buttonStyle(.plain)
             .pointingHandCursor()
 
-            if hovering {
-                Button(action: onDelete) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(LaneColors.bgBase)
-                        .frame(width: 14, height: 14)
-                        .background(Circle().fill(LaneColors.ink))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .pointingHandCursor()
-                .help("Delete group")
-                .offset(x: 4, y: -4)
+            Button(action: onDelete) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 6.5, weight: .bold))
+                    .foregroundStyle(LaneColors.bgBase)
+                    .frame(width: 11, height: 11)
+                    .background(Circle().fill(LaneColors.inkMuted))
+                    .contentShape(Circle())
             }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+            .help("Delete group")
+            .offset(x: 3, y: -3)
+            .opacity(hovering ? 1 : 0)
+            .scaleEffect(hovering ? 1 : 0.6)
+            .animation(.easeOut(duration: 0.15), value: hovering)
+            .allowsHitTesting(hovering)
         }
         .onHover { hovering = $0 }
-        .padding(2)
+        .padding(4)
     }
 }
 

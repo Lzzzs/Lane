@@ -14,9 +14,12 @@ struct TimeAxis: View {
         ZStack(alignment: .topLeading) {
             ForEach(0...max(0, totalDays), id: \.self) { offset in
                 let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
+                let isToday = cal.isDate(date, inSameDayAs: today)
                 if shouldShowLabel(for: date, today: today, cal: cal) {
                     dayLabel(for: date, today: today, cal: cal)
-                        .frame(width: geometry.dayWidth, height: 32, alignment: .leading)
+                        .fixedSize(horizontal: isToday, vertical: false)
+                        .frame(width: isToday ? nil : geometry.dayWidth,
+                               height: 32, alignment: .leading)
                         .offset(x: geometry.x(for: date))
                 }
             }

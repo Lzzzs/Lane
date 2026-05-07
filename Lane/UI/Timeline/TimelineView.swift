@@ -16,7 +16,7 @@ struct TimelineView: View {
             let availableTimelineWidth = max(0, proxy.size.width - Self.titleColumnWidth)
             let g = TimelineGeometry(
                 viewportStart: timeline.viewportStart,
-                dayWidth: timeline.granularity.dayWidth)
+                dayWidth: timeline.effectiveDayWidth)
             let canvasWidth = visibleCanvasWidth()
 
             ScrollView(.vertical, showsIndicators: false) {
@@ -32,6 +32,7 @@ struct TimelineView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(LaneColors.bgBase)
+            .gesture(zoomGesture(availableWidth: availableTimelineWidth))
             .onAppear { timeline.fitTo(availableWidth: availableTimelineWidth) }
             .onChange(of: availableTimelineWidth) { _, newWidth in
                 timeline.fitTo(availableWidth: newWidth)
@@ -39,7 +40,22 @@ struct TimelineView: View {
             .onChange(of: timeline.granularity) { _, _ in
                 timeline.fitTo(availableWidth: availableTimelineWidth)
             }
+            .onChange(of: timeline.effectiveDayWidth) { _, _ in
+                timeline.fitTo(availableWidth: availableTimelineWidth)
+            }
         }
+    }
+
+    private func zoomGesture(availableWidth: CGFloat) -> some Gesture {
+        MagnifyGesture(minimumScaleDelta: 0.05)
+            .onChanged { value in
+                let baseline = timeline.effectiveDayWidth
+                let target = baseline * value.magnification
+                timeline.setDayWidth(target)
+            }
+            .onEnded { _ in
+                timeline.fitTo(availableWidth: availableWidth)
+            }
     }
 
     private var titleColumn: some View {
@@ -93,6 +109,7 @@ struct TimelineView: View {
                     }
                 }
             }
+            Color.clear.frame(height: 16)
             HairLine()
         }
     }
@@ -133,6 +150,7 @@ struct TimelineView: View {
                     .pointingHandCursor()
                 }
             }
+            Color.clear.frame(height: 16)
             HairLine()
         }
         .frame(width: width, alignment: .leading)
@@ -147,6 +165,6 @@ struct TimelineView: View {
         let cal = Calendar(identifier: .gregorian)
         let days = (cal.dateComponents([.day],
             from: timeline.viewportStart, to: timeline.viewportEnd).day ?? 0) + 1
-        return CGFloat(days) * timeline.granularity.dayWidth
+        return CGFloat(days) * timeline.effectiveDayWidth
     }
 }

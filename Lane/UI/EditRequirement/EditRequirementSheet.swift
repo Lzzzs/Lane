@@ -206,16 +206,12 @@ private struct StageEditorRow: View {
                 .foregroundStyle(LaneColors.ink)
                 .frame(width: 80, alignment: .leading)
 
-            DatePicker("", selection: startBinding, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
+            LaneDatePicker(date: startBinding)
 
             Text("→")
                 .foregroundStyle(LaneColors.inkFaint)
 
-            DatePicker("", selection: endBinding, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
+            LaneDatePicker(date: endBinding)
 
             Spacer(minLength: 0)
 

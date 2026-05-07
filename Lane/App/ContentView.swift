@@ -25,6 +25,7 @@ struct ContentView: View {
         }
         .background(LaneColors.bgBase)
         .preferredColorScheme(.light)
+        .ignoresSafeArea(.container, edges: .top)
         .onChange(of: app.groups.map(\.id)) { _, newIds in
             for id in newIds where !timeline.visibleGroupIds.contains(id) {
                 timeline.visibleGroupIds.insert(id)
@@ -44,7 +45,7 @@ struct ContentView: View {
     private var topBar: some View {
         HStack(spacing: 12) {
             // Traffic-light area (hidden title bar)
-            Spacer().frame(width: 64)
+            Spacer().frame(width: 70)
 
             HStack(spacing: 8) {
                 LaneMark()
@@ -97,12 +98,14 @@ struct ContentView: View {
             }
         }
         .padding(.horizontal, 14)
-        .frame(height: 44)
+        .frame(height: 38)
+        .padding(.top, 4)
     }
 
     private var granularityPill: some View {
         HStack(spacing: 0) {
             ForEach(TimelineGranularity.allCases) { g in
+                let isActive = timeline.isUsingPreset && timeline.granularity == g
                 Button {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                         timeline.setGranularity(g)
@@ -111,14 +114,14 @@ struct ContentView: View {
                     AllCapsLabel(
                         text: shortLabel(g),
                         size: 10,
-                        color: timeline.granularity == g ? LaneColors.ink : LaneColors.inkMuted,
-                        weight: timeline.granularity == g ? .semibold : .medium
+                        color: isActive ? LaneColors.ink : LaneColors.inkMuted,
+                        weight: isActive ? .semibold : .medium
                     )
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
                     .contentShape(Rectangle())
                     .background {
-                        if timeline.granularity == g {
+                        if isActive {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(LaneColors.bgCard)
                                 .matchedGeometryEffect(id: "granularitySelection", in: granularitySelection)

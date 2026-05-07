@@ -97,6 +97,10 @@ struct SettingsSheet: View {
 
     private var generalPane: some View {
         VStack(alignment: .leading, spacing: 24) {
+            section("LANGUAGE") {
+                LanguagePicker()
+            }
+
             section("DATABASE") {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Lane stores your data in a single SQLite file.")

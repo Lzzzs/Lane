@@ -5,6 +5,7 @@ import LaneCore
 struct LaneApp: App {
     @State private var appStore: AppStore
     @State private var timelineStore: TimelineStore = TimelineStore()
+    @AppStorage("lane.preferredLanguage") private var preferredLanguage: String = LanePreferredLanguage.system.rawValue
 
     init() {
         FontRegistration.registerBundledFonts()
@@ -27,6 +28,7 @@ struct LaneApp: App {
             ContentView()
                 .environment(appStore)
                 .environment(timelineStore)
+                .environment(\.locale, currentLocale)
                 .task {
                     try? await appStore.load()
                     timelineStore.visibleGroupIds = Set(appStore.groups.map(\.id))
@@ -35,5 +37,12 @@ struct LaneApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+    }
+
+    private var currentLocale: Locale {
+        guard let id = LanePreferredLanguage(rawValue: preferredLanguage)?.localeIdentifier else {
+            return Locale.autoupdatingCurrent
+        }
+        return Locale(identifier: id)
     }
 }
