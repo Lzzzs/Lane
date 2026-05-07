@@ -31,8 +31,9 @@ struct LaneApp: App {
                     try? await appStore.load()
                     timelineStore.visibleGroupIds = Set(appStore.groups.map(\.id))
                 }
-                .frame(minWidth: 720, minHeight: 480)
+                .frame(minWidth: 1000, minHeight: 540)
         }
-        .windowStyle(.titleBar)
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
     }
 }
