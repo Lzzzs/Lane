@@ -6,21 +6,25 @@ struct ContentView: View {
     @Environment(TimelineStore.self) private var timeline
 
     @State private var showingNewRequirement = false
+    @State private var showingSettings = false
     @State private var editingRequirementId: String? = nil
 
+    @Namespace private var granularitySelection
+
     var body: some View {
-        HStack(spacing: 0) {
-            TimelineView(onSelect: { editingRequirementId = $0 })
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            HairLine(orientation: .vertical)
-            TodayPanel(onSelect: { editingRequirementId = $0 })
-                .frame(width: 320)
+        VStack(spacing: 0) {
+            topBar
+            HairLine()
+            HStack(spacing: 0) {
+                TimelineView(onSelect: { editingRequirementId = $0 })
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                HairLine(orientation: .vertical)
+                TodayPanel(onSelect: { editingRequirementId = $0 })
+                    .frame(width: 320)
+            }
         }
         .background(LaneColors.bgBase)
         .preferredColorScheme(.light)
-        .navigationTitle("Lane")
-        .toolbar { toolbarContent }
-        .toolbarBackground(LaneColors.bgBase, for: .windowToolbar)
         .onChange(of: app.groups.map(\.id)) { _, newIds in
             for id in newIds where !timeline.visibleGroupIds.contains(id) {
                 timeline.visibleGroupIds.insert(id)
@@ -29,63 +33,112 @@ struct ContentView: View {
         .sheet(isPresented: $showingNewRequirement) {
             NewRequirementSheet().environment(app)
         }
+        .sheet(isPresented: $showingSettings) {
+            SettingsSheet().environment(app)
+        }
         .sheet(item: editingRequirementBinding) { wrapper in
             EditRequirementSheet(requirementId: wrapper.id).environment(app)
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            // Traffic-light area (hidden title bar)
+            Spacer().frame(width: 64)
+
             HStack(spacing: 8) {
                 LaneMark()
                     .frame(width: 24, height: 14)
                 AllCapsLabel(text: "lane", size: 11, color: LaneColors.ink, weight: .semibold)
             }
-        }
 
-        ToolbarItemGroup(placement: .principal) {
+            Spacer()
+
+            granularityPill
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(LaneColors.inkMuted)
+                        .padding(6)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .help("Settings")
+                .keyboardShortcut(",", modifiers: .command)
+
+                Button {
+                    showingNewRequirement = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("New")
+                            .font(LaneFonts.medium(size: 11))
+                    }
+                    .foregroundStyle(LaneColors.ink)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(LaneColors.borderRule, lineWidth: 1)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .keyboardShortcut("t", modifiers: .command)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 44)
+    }
+
+    private var granularityPill: some View {
+        HStack(spacing: 0) {
             ForEach(TimelineGranularity.allCases) { g in
                 Button {
-                    timeline.setGranularity(g)
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                        timeline.setGranularity(g)
+                    }
                 } label: {
                     AllCapsLabel(
                         text: shortLabel(g),
                         size: 10,
-                        color: timeline.granularity == g ? LaneColors.ink : LaneColors.inkMuted
+                        color: timeline.granularity == g ? LaneColors.ink : LaneColors.inkMuted,
+                        weight: timeline.granularity == g ? .semibold : .medium
                     )
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
                     .contentShape(Rectangle())
+                    .background {
+                        if timeline.granularity == g {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(LaneColors.bgCard)
+                                .matchedGeometryEffect(id: "granularitySelection", in: granularitySelection)
+                                .shadow(color: LaneColors.ink.opacity(0.04), radius: 1, y: 0.5)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
             }
         }
-
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                showingNewRequirement = true
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .medium))
-                    Text("New")
-                        .font(LaneFonts.medium(size: 11))
-                }
-                .foregroundStyle(LaneColors.ink)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+        .padding(2)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(LaneColors.tagBg.opacity(0.7))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(LaneColors.borderRule, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(LaneColors.borderHair, lineWidth: 0.5)
                 )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .pointingHandCursor()
-            .keyboardShortcut("n", modifiers: .command)
-        }
+        )
     }
 
     private var editingRequirementBinding: Binding<IdentifiableString?> {

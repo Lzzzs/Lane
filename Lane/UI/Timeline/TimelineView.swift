@@ -84,10 +84,11 @@ struct TimelineView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.leading, LaneSpacing.cardPaddingS + 12)
                                 .padding(.trailing, 8)
-                                .frame(height: LaneSpacing.trackRowHeight, alignment: .leading)
-                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: LaneSpacing.trackRowHeight)
+                        .contentShape(Rectangle())
                         .pointingHandCursor()
                     }
                 }
@@ -124,9 +125,11 @@ struct TimelineView: View {
                             stages: app.stagesByRequirement[req.id] ?? [],
                             geometry: geometry
                         )
-                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: LaneSpacing.trackRowHeight)
+                    .contentShape(Rectangle())
                     .pointingHandCursor()
                 }
             }

@@ -9,5 +9,6 @@ struct HairLine: View {
             .fill(color)
             .frame(width: orientation == .horizontal ? nil : 1,
                    height: orientation == .horizontal ? 1 : nil)
+            .allowsHitTesting(false)
     }
 }

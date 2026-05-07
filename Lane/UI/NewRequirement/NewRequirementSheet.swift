@@ -9,7 +9,7 @@ struct NewRequirementSheet: View {
     @State private var selectedGroupId: String = ""
     @State private var startsToday: Bool = true
     @State private var showingNewGroup = false
-    @State private var groupPendingDelete: String? = nil
+    @State private var deleteError: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -33,21 +33,20 @@ struct NewRequirementSheet: View {
                 AllCapsLabel(text: "GROUP", size: 10)
                 FlowLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(app.groups) { group in
-                        GroupPill(
+                        DeletableGroupPill(
                             group: group,
                             selected: group.id == selectedGroupId,
-                            action: { selectedGroupId = group.id }
+                            onSelect: { selectedGroupId = group.id },
+                            onDelete: { tryDelete(group) }
                         )
-                        .pointingHandCursor()
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                groupPendingDelete = group.id
-                            } label: {
-                                Text("Delete \"\(group.name)\"")
-                            }
-                        }
                     }
                     addGroupChip
+                        .popover(isPresented: $showingNewGroup, arrowEdge: .trailing) {
+                            NewGroupPopover { newId in
+                                selectedGroupId = newId
+                            }
+                            .environment(app)
+                        }
                 }
             }
 
@@ -78,23 +77,16 @@ struct NewRequirementSheet: View {
                 selectedGroupId = app.groups.first?.id ?? ""
             }
         }
-        .popover(isPresented: $showingNewGroup, arrowEdge: .bottom) {
-            NewGroupPopover { newId in
-                selectedGroupId = newId
-            }
-            .environment(app)
-        }
         .alert(
-            "Delete this group?",
+            "Can't delete group",
             isPresented: Binding(
-                get: { groupPendingDelete != nil },
-                set: { if !$0 { groupPendingDelete = nil } }
+                get: { deleteError != nil },
+                set: { if !$0 { deleteError = nil } }
             )
         ) {
-            Button("Cancel", role: .cancel) { groupPendingDelete = nil }
-            Button("Delete", role: .destructive) { confirmDeleteGroup() }
+            Button("OK") { deleteError = nil }
         } message: {
-            Text("Groups can only be deleted when they have no active requirements.")
+            Text(deleteError ?? "")
         }
     }
 
@@ -123,13 +115,23 @@ struct NewRequirementSheet: View {
         .pointingHandCursor()
     }
 
-    private func confirmDeleteGroup() {
-        guard let id = groupPendingDelete else { return }
-        groupPendingDelete = nil
+    private func tryDelete(_ group: LaneCore.Group) {
+        let count = (app.requirementsByGroup[group.id] ?? []).count
+        if count > 0 {
+            deleteError = "\"\(group.name)\" still has \(count) requirement(s). Move or archive them before deleting the group."
+            return
+        }
+        let id = group.id
         if selectedGroupId == id {
             selectedGroupId = app.groups.first { $0.id != id }?.id ?? ""
         }
-        Task { try? await app.deleteGroup(id: id) }
+        Task {
+            do {
+                try await app.deleteGroup(id: id)
+            } catch {
+                deleteError = "Couldn't delete \"\(group.name)\": \(error.localizedDescription)"
+            }
+        }
     }
 
     private func create() {
@@ -149,6 +151,56 @@ struct NewRequirementSheet: View {
                 NSLog("Lane new requirement failed: \(error)")
             }
         }
+    }
+}
+
+private struct DeletableGroupPill: View {
+    let group: LaneCore.Group
+    let selected: Bool
+    let onSelect: () -> Void
+    let onDelete: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Button(action: onSelect) {
+                HStack(spacing: 6) {
+                    GroupDot(colorHex: group.color, size: 6)
+                    Text(group.name)
+                        .font(LaneFonts.medium(size: 11))
+                        .foregroundStyle(selected ? LaneColors.ink : LaneColors.inkMuted)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(selected ? LaneColors.tagBg : Color.clear)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(selected ? LaneColors.borderRule : LaneColors.borderHair, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .contentShape(RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+
+            if hovering {
+                Button(action: onDelete) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(LaneColors.bgBase)
+                        .frame(width: 14, height: 14)
+                        .background(Circle().fill(LaneColors.ink))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .help("Delete group")
+                .offset(x: 4, y: -4)
+            }
+        }
+        .onHover { hovering = $0 }
+        .padding(2)
     }
 }
 
