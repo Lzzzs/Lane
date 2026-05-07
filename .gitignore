@@ -34,3 +34,6 @@ Package.resolved
 
 # Logs
 *.log
+
+# Snipaste / screenshots dropped into project root
+Snipaste*.png
