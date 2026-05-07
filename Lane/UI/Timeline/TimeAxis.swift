@@ -88,12 +88,21 @@ struct TimeAxis: View {
 
     private func shouldShowLabel(for date: Date, today: Date, cal: Calendar) -> Bool {
         if cal.isDate(date, inSameDayAs: today) { return true }
-        switch granularity {
-        case .day, .week:
-            return true
-        case .month:
-            return cal.component(.weekday, from: date) == 2
-        }
+        // Density-aware: keep labels at least ~52pt apart so they don't pile up
+        // at small day-widths (custom zoom or month preset).
+        let step = labelStep(dayWidth: geometry.dayWidth)
+        let offset = cal.dateComponents([.day],
+            from: geometry.viewportStart, to: date).day ?? 0
+        if offset % step == 0 { return true }
+        // Always include the 1st of each month as a reliable monthly anchor.
+        if cal.component(.day, from: date) == 1 { return true }
+        return false
+    }
+
+    private func labelStep(dayWidth: CGFloat) -> Int {
+        let minPxBetween: CGFloat = 52
+        guard dayWidth > 0 else { return 1 }
+        return max(1, Int((minPxBetween / dayWidth).rounded(.up)))
     }
 
     @ViewBuilder

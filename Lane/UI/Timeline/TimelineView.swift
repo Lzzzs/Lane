@@ -53,6 +53,18 @@ struct TimelineView: View {
                             hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
                         }
                     }
+                    .onChange(of: timeline.effectiveDayWidth) { oldWidth, newWidth in
+                        // When the day-width changes outside of an active pinch
+                        // (i.e. the user clicked a granularity preset), keep the
+                        // visible centre on the same date by rescaling the scroll
+                        // offset proportionally.
+                        guard zoomBaseline == nil, oldWidth > 0 else { return }
+                        let viewW = proxy.size.width
+                        let centerInCanvas = hScrollOffsetX + viewW / 2
+                        let scale = newWidth / oldWidth
+                        let newCenter = centerInCanvas * scale
+                        hScrollOffsetX = max(0, newCenter - viewW / 2)
+                    }
                     .gesture(zoomGesture(viewWidth: proxy.size.width))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
