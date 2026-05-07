@@ -12,26 +12,34 @@ struct TimelineView: View {
     static let laneHeaderHeight: CGFloat = 40
 
     var body: some View {
-        let g = TimelineGeometry(
-            viewportStart: timeline.viewportStart,
-            dayWidth: timeline.granularity.dayWidth)
-        let canvasWidth = visibleCanvasWidth()
+        GeometryReader { proxy in
+            let availableTimelineWidth = max(0, proxy.size.width - Self.titleColumnWidth)
+            let g = TimelineGeometry(
+                viewportStart: timeline.viewportStart,
+                dayWidth: timeline.granularity.dayWidth)
+            let canvasWidth = visibleCanvasWidth()
 
-        ScrollView(.vertical, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 0) {
-                titleColumn
-                    .frame(width: Self.titleColumnWidth, alignment: .leading)
-                ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 0) {
+                    titleColumn
+                        .frame(width: Self.titleColumnWidth, alignment: .leading)
                     ZStack(alignment: .topLeading) {
-                        timelineCanvas(geometry: g, width: canvasWidth)
+                        timelineCanvas(geometry: g, width: max(canvasWidth, availableTimelineWidth))
                         TodayLine(geometry: g)
                     }
-                    .frame(width: canvasWidth, alignment: .topLeading)
+                    .frame(width: max(canvasWidth, availableTimelineWidth), alignment: .topLeading)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(LaneColors.bgBase)
+            .onAppear { timeline.fitTo(availableWidth: availableTimelineWidth) }
+            .onChange(of: availableTimelineWidth) { _, newWidth in
+                timeline.fitTo(availableWidth: newWidth)
+            }
+            .onChange(of: timeline.granularity) { _, _ in
+                timeline.fitTo(availableWidth: availableTimelineWidth)
+            }
         }
-        .background(LaneColors.bgBase)
     }
 
     private var titleColumn: some View {
@@ -80,6 +88,7 @@ struct TimelineView: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .pointingHandCursor()
                     }
                 }
             }
@@ -118,6 +127,7 @@ struct TimelineView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .pointingHandCursor()
                 }
             }
             HairLine()

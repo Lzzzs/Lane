@@ -6,7 +6,6 @@ struct ContentView: View {
     @Environment(TimelineStore.self) private var timeline
 
     @State private var showingNewRequirement = false
-    @State private var showingNewGroup = false
     @State private var editingRequirementId: String? = nil
 
     var body: some View {
@@ -21,6 +20,7 @@ struct ContentView: View {
         .preferredColorScheme(.light)
         .navigationTitle("Lane")
         .toolbar { toolbarContent }
+        .toolbarBackground(LaneColors.bgBase, for: .windowToolbar)
         .onChange(of: app.groups.map(\.id)) { _, newIds in
             for id in newIds where !timeline.visibleGroupIds.contains(id) {
                 timeline.visibleGroupIds.insert(id)
@@ -59,22 +59,11 @@ struct ContentView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .pointingHandCursor()
             }
         }
 
-        ToolbarItemGroup(placement: .primaryAction) {
-            Button {
-                showingNewGroup = true
-            } label: {
-                Image(systemName: "rectangle.stack.badge.plus")
-                    .font(.system(size: 12, weight: .medium))
-            }
-            .buttonStyle(.plain)
-            .help("New group")
-            .popover(isPresented: $showingNewGroup, arrowEdge: .top) {
-                NewGroupPopover().environment(app)
-            }
-
+        ToolbarItem(placement: .primaryAction) {
             Button {
                 showingNewRequirement = true
             } label: {
@@ -84,9 +73,17 @@ struct ContentView: View {
                     Text("New")
                         .font(LaneFonts.medium(size: 11))
                 }
+                .foregroundStyle(LaneColors.ink)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(LaneColors.borderRule, lineWidth: 1)
+                )
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
+            .buttonStyle(.plain)
+            .pointingHandCursor()
             .keyboardShortcut("n", modifiers: .command)
         }
     }

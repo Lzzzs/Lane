@@ -8,46 +8,59 @@ struct TimeAxis: View {
 
     var body: some View {
         let cal = Calendar(identifier: .gregorian)
-        let days = stride(from: 0,
-                          through: cal.dateComponents([.day],
-                              from: geometry.viewportStart, to: viewportEnd).day ?? 0,
-                          by: 1)
+        let totalDays = (cal.dateComponents([.day],
+            from: geometry.viewportStart, to: viewportEnd).day ?? 0)
+        let today = cal.startOfDay(for: Date())
         ZStack(alignment: .topLeading) {
-            ForEach(Array(days), id: \.self) { offset in
+            ForEach(0...max(0, totalDays), id: \.self) { offset in
                 let date = cal.date(byAdding: .day, value: offset, to: geometry.viewportStart)!
-                dayLabel(for: date)
-                    .frame(width: geometry.dayWidth, height: 28, alignment: .leading)
-                    .offset(x: geometry.x(for: date))
+                if shouldShowLabel(for: date, today: today, cal: cal) {
+                    dayLabel(for: date, today: today, cal: cal)
+                        .frame(width: geometry.dayWidth, height: 32, alignment: .leading)
+                        .offset(x: geometry.x(for: date))
+                }
             }
         }
-        .frame(height: 28)
+        .frame(height: 32)
+    }
+
+    private func shouldShowLabel(for date: Date, today: Date, cal: Calendar) -> Bool {
+        if cal.isDate(date, inSameDayAs: today) { return true }
+        switch granularity {
+        case .day, .week:
+            return true
+        case .month:
+            return cal.component(.weekday, from: date) == 2
+        }
     }
 
     @ViewBuilder
-    private func dayLabel(for date: Date) -> some View {
-        let cal = Calendar(identifier: .gregorian)
-        let isToday = cal.isDateInToday(date)
-        switch granularity {
-        case .day, .week:
-            VStack(alignment: .leading, spacing: 2) {
+    private func dayLabel(for date: Date, today: Date, cal: Calendar) -> some View {
+        let isToday = cal.isDate(date, inSameDayAs: today)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(monthDay(date))
                     .font(LaneFonts.mono(size: 10))
                     .foregroundStyle(isToday ? LaneColors.ink : LaneColors.inkMuted)
+                    .fontWeight(isToday ? .semibold : .regular)
+                if isToday {
+                    Text("TODAY")
+                        .font(LaneFonts.mono(size: 8))
+                        .tracking(0.6)
+                        .foregroundStyle(LaneColors.ink)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(LaneColors.ink.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                }
+            }
+            if granularity != .month {
                 Text(weekday(date))
                     .font(LaneFonts.mono(size: 9))
-                    .foregroundStyle(LaneColors.inkFaint)
-            }
-            .padding(.leading, 4)
-        case .month:
-            if cal.component(.weekday, from: date) == 2 {
-                Text(monthDay(date))
-                    .font(LaneFonts.mono(size: 9))
-                    .foregroundStyle(LaneColors.inkMuted)
-                    .padding(.leading, 2)
-            } else {
-                EmptyView()
+                    .foregroundStyle(isToday ? LaneColors.inkMuted : LaneColors.inkFaint)
             }
         }
+        .padding(.leading, 4)
     }
 
     private func monthDay(_ d: Date) -> String {

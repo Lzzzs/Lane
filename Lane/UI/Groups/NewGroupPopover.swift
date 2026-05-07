@@ -5,6 +5,8 @@ struct NewGroupPopover: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var app
 
+    var onCreated: ((String) -> Void)? = nil
+
     @State private var name: String = ""
     @State private var colorHex: String = LaneColors.groupPalette.first ?? "#7A8C7A"
     @State private var icon: String = "●"
@@ -105,8 +107,11 @@ struct NewGroupPopover: View {
         let n = trimmed
         let c = colorHex
         let i = icon
+        let cb = onCreated
         Task {
-            _ = try? await app.createGroup(name: n, color: c, icon: i)
+            if let group = try? await app.createGroup(name: n, color: c, icon: i) {
+                cb?(group.id)
+            }
             dismiss()
         }
     }

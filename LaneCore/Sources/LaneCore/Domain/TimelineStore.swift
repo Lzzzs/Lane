@@ -57,4 +57,19 @@ public final class TimelineStore {
         viewportStart = calendar.date(byAdding: .day, value: days, to: viewportStart)!
         viewportEnd   = calendar.date(byAdding: .day, value: days, to: viewportEnd)!
     }
+
+    /// Resize the viewport so it spans `availableWidth / dayWidth` days,
+    /// keeping today centered when today is currently in view.
+    public func fitTo(availableWidth: CGFloat) {
+        let dayWidth = granularity.dayWidth
+        guard dayWidth > 0, availableWidth > 0 else { return }
+        let totalDays = max(granularity.defaultVisibleDays,
+                            Int(availableWidth / dayWidth))
+        let half = totalDays / 2
+        let today = calendar.startOfDay(for: Date())
+        let pinnedToday = today >= viewportStart && today <= viewportEnd
+        let anchor = pinnedToday ? today : calendar.startOfDay(for: viewportStart)
+        viewportStart = calendar.date(byAdding: .day, value: -half, to: anchor)!
+        viewportEnd = calendar.date(byAdding: .day, value: totalDays - half, to: anchor)!
+    }
 }
