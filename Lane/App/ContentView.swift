@@ -97,7 +97,8 @@ struct ContentView: View {
                 .keyboardShortcut("t", modifiers: .command)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.leading, 18)
+        .padding(.trailing, 22)
         .frame(height: 36)
     }
 

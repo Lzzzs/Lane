@@ -8,10 +8,14 @@ struct TimelineView: View {
     let onSelect: (String) -> Void
 
     static let titleColumnWidth: CGFloat = 200
-    static let timeAxisHeight: CGFloat = 48
+    static let timeAxisHeight: CGFloat = 56
     static let laneHeaderHeight: CGFloat = 40
 
     @State private var zoomBaseline: CGFloat? = nil
+    @State private var zoomAnchorOffsetInCanvas: CGFloat? = nil
+    @State private var zoomAnchorScreenX: CGFloat? = nil
+    @State private var hScrollOffsetX: CGFloat = 0
+    @State private var pendingScrollToToday: Bool = true
 
     var body: some View {
         let g = TimelineGeometry(
@@ -24,63 +28,69 @@ struct TimelineView: View {
                 titleColumn
                     .frame(width: Self.titleColumnWidth, alignment: .leading)
 
-                ScrollViewReader { hProxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
+                GeometryReader { proxy in
+                    TimelineHorizontalScroll(
+                        offsetX: $hScrollOffsetX,
+                        contentWidth: canvasWidth,
+                        scrollFactor: 0.5
+                    ) {
                         ZStack(alignment: .topLeading) {
                             timelineCanvas(geometry: g, width: canvasWidth)
                             TodayLine(geometry: g)
-                            // Anchor strip used by ScrollViewReader to scroll to today.
-                            // HStack spacers laid out so the marker's actual frame is at
-                            // today's x. (.offset is visual-only and ScrollViewReader
-                            // scrolls to layout position, not visual.)
-                            HStack(spacing: 0) {
-                                Color.clear.frame(width: max(0, g.x(for: today()) - 1))
-                                Color.clear.frame(width: 2).id("today")
-                                Spacer(minLength: 0)
-                            }
-                            .frame(width: canvasWidth, height: 1)
-                            .allowsHitTesting(false)
                         }
                         .frame(width: canvasWidth, alignment: .topLeading)
                     }
                     .onAppear {
-                        DispatchQueue.main.async { scrollToToday(hProxy) }
-                    }
-                    .onChange(of: timeline.jumpToTodayCounter) { _, _ in
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            scrollToToday(hProxy)
+                        if pendingScrollToToday {
+                            pendingScrollToToday = false
+                            let viewW = proxy.size.width
+                            hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
                         }
                     }
-                    .onChange(of: timeline.granularity) { _, _ in
-                        DispatchQueue.main.async { scrollToToday(hProxy) }
+                    .onChange(of: timeline.jumpToTodayCounter) { _, _ in
+                        let viewW = proxy.size.width
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
+                        }
                     }
+                    .gesture(zoomGesture(viewWidth: proxy.size.width))
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(LaneColors.bgBase)
-        .gesture(zoomGesture)
     }
 
-    private var zoomGesture: some Gesture {
+    private func zoomGesture(viewWidth: CGFloat) -> some Gesture {
         MagnifyGesture(minimumScaleDelta: 0.02)
             .onChanged { value in
-                let base = zoomBaseline ?? timeline.effectiveDayWidth
-                if zoomBaseline == nil { zoomBaseline = base }
-                // Dampen the trackpad pinch — raw magnification is too eager.
+                if zoomBaseline == nil {
+                    zoomBaseline = timeline.effectiveDayWidth
+                    let cursorScreenX = value.startLocation.x
+                    zoomAnchorScreenX = cursorScreenX
+                    zoomAnchorOffsetInCanvas = hScrollOffsetX + cursorScreenX
+                }
+                guard let base = zoomBaseline,
+                      let anchorOffset = zoomAnchorOffsetInCanvas,
+                      let anchorScreen = zoomAnchorScreenX else { return }
+                let oldWidth = timeline.effectiveDayWidth
                 let raw = value.magnification
                 let damped = raw >= 1
                     ? 1 + (raw - 1) * 0.4
                     : 1 - (1 - raw) * 0.4
                 timeline.setDayWidth(base * damped)
+                let scale = timeline.effectiveDayWidth / oldWidth
+                let newAnchor = anchorOffset * scale
+                hScrollOffsetX = max(0, newAnchor - anchorScreen)
+                zoomAnchorOffsetInCanvas = newAnchor
+                _ = viewWidth
             }
             .onEnded { _ in
                 zoomBaseline = nil
+                zoomAnchorOffsetInCanvas = nil
+                zoomAnchorScreenX = nil
             }
-    }
-
-    private func scrollToToday(_ proxy: ScrollViewProxy) {
-        proxy.scrollTo("today", anchor: .center)
     }
 
     private func today() -> Date {

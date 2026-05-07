@@ -6,8 +6,9 @@ struct TimeAxis: View {
     let granularity: TimelineGranularity
     let viewportEnd: Date
 
-    private static let height: CGFloat = 48
-    private static let yearStripeHeight: CGFloat = 16
+    private static let height: CGFloat = 56
+    private static let yearStripeHeight: CGFloat = 18
+    private static let labelBottomPadding: CGFloat = 6
 
     var body: some View {
         let cal = Calendar(identifier: .gregorian)
@@ -24,8 +25,8 @@ struct TimeAxis: View {
                         dayLabel(for: date, today: today, cal: cal)
                             .fixedSize(horizontal: isToday, vertical: false)
                             .frame(width: isToday ? nil : geometry.dayWidth,
-                                   height: Self.height - Self.yearStripeHeight,
-                                   alignment: .leading)
+                                   height: Self.height - Self.yearStripeHeight - Self.labelBottomPadding,
+                                   alignment: .topLeading)
                             .offset(x: geometry.x(for: date),
                                     y: Self.yearStripeHeight)
                     }
