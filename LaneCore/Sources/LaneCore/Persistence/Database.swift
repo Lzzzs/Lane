@@ -1,19 +1,19 @@
 import GRDB
 import Foundation
 
-enum Database {
-    static func makeInMemoryQueue() throws -> DatabaseQueue {
+public enum Database {
+    public static func makeInMemoryQueue() throws -> DatabaseQueue {
         try DatabaseQueue()
     }
 
-    static func makeFilePool(at url: URL) throws -> DatabasePool {
+    public static func makeFilePool(at url: URL) throws -> DatabasePool {
         var config = Configuration()
         // SQLite disables FK enforcement by default for legacy compatibility; opt in explicitly.
         config.foreignKeysEnabled = true
         return try DatabasePool(path: url.path, configuration: config)
     }
 
-    static func defaultStoreURL() throws -> URL {
+    public static func defaultStoreURL() throws -> URL {
         let appSupport = try FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,

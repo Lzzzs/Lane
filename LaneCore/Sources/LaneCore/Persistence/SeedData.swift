@@ -1,8 +1,8 @@
 import Foundation
 import GRDB
 
-enum SeedData {
-    static func seedIfEmpty(pool: DatabaseWriter) throws {
+public enum SeedData {
+    public static func seedIfEmpty(pool: DatabaseWriter) throws {
         let count = try pool.read { db in
             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM requirement") ?? 0
         }

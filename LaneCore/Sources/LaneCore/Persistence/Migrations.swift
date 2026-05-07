@@ -1,8 +1,8 @@
 import Foundation
 import GRDB
 
-enum Migrations {
-    static func register() -> DatabaseMigrator {
+public enum Migrations {
+    public static func register() -> DatabaseMigrator {
         var m = DatabaseMigrator()
 
         m.registerMigration("v1_initial_schema") { db in

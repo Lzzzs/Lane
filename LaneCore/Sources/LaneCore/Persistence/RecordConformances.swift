@@ -1,9 +1,9 @@
 import GRDB
 
 extension Group: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "group_"
-    static let databaseColumnDecodingStrategy: DatabaseColumnDecodingStrategy = .convertFromSnakeCase
-    static let databaseColumnEncodingStrategy: DatabaseColumnEncodingStrategy = .convertToSnakeCase
+    public static let databaseTableName = "group_"
+    public static let databaseColumnDecodingStrategy: DatabaseColumnDecodingStrategy = .convertFromSnakeCase
+    public static let databaseColumnEncodingStrategy: DatabaseColumnEncodingStrategy = .convertToSnakeCase
 }
 
 extension StageTemplate: FetchableRecord, PersistableRecord {
@@ -19,15 +19,15 @@ extension StageTemplateItem: FetchableRecord, PersistableRecord {
 }
 
 extension Requirement: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "requirement"
-    static let databaseColumnDecodingStrategy: DatabaseColumnDecodingStrategy = .convertFromSnakeCase
-    static let databaseColumnEncodingStrategy: DatabaseColumnEncodingStrategy = .convertToSnakeCase
+    public static let databaseTableName = "requirement"
+    public static let databaseColumnDecodingStrategy: DatabaseColumnDecodingStrategy = .convertFromSnakeCase
+    public static let databaseColumnEncodingStrategy: DatabaseColumnEncodingStrategy = .convertToSnakeCase
 }
 
 extension StageInstance: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "stage_instance"
-    static let databaseColumnDecodingStrategy: DatabaseColumnDecodingStrategy = .convertFromSnakeCase
-    static let databaseColumnEncodingStrategy: DatabaseColumnEncodingStrategy = .convertToSnakeCase
+    public static let databaseTableName = "stage_instance"
+    public static let databaseColumnDecodingStrategy: DatabaseColumnDecodingStrategy = .convertFromSnakeCase
+    public static let databaseColumnEncodingStrategy: DatabaseColumnEncodingStrategy = .convertToSnakeCase
 }
 
 extension Todo: FetchableRecord, PersistableRecord {
