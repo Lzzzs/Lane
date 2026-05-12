@@ -13,9 +13,6 @@ struct TimelineView: View {
     static let laneHeaderHeight: CGFloat = 40
 
     @State private var zoomBaseline: CGFloat? = nil
-    @State private var zoomAnchorOffsetInCanvas: CGFloat? = nil
-    @State private var zoomAnchorScreenX: CGFloat? = nil
-    @State private var hScrollOffsetX: CGFloat = 0
     @State private var pendingScrollToToday: Bool = true
 
     var body: some View {
@@ -29,43 +26,38 @@ struct TimelineView: View {
                 titleColumn
                     .frame(width: Self.titleColumnWidth, alignment: .leading)
 
-                GeometryReader { proxy in
-                    TimelineHorizontalScroll(
-                        offsetX: $hScrollOffsetX,
-                        contentWidth: canvasWidth,
-                        scrollFactor: 0.5
-                    ) {
+                ScrollViewReader { hProxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
                         ZStack(alignment: .topLeading) {
                             timelineCanvas(geometry: g, width: canvasWidth)
                             TodayLine(geometry: g)
+                            // Hidden anchor at today's x for ScrollViewReader.
+                            HStack(spacing: 0) {
+                                Color.clear.frame(width: max(0, g.x(for: today()) - 1))
+                                Color.clear.frame(width: 2).id("today")
+                                Spacer(minLength: 0)
+                            }
+                            .frame(width: canvasWidth, height: 1)
+                            .allowsHitTesting(false)
                         }
                         .frame(width: canvasWidth, alignment: .topLeading)
                     }
                     .onAppear {
                         if pendingScrollToToday {
                             pendingScrollToToday = false
-                            let viewW = proxy.size.width
-                            hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
-                            updateIsAtToday(viewWidth: viewW, geometry: g)
+                            DispatchQueue.main.async {
+                                hProxy.scrollTo("today", anchor: .center)
+                                isAtToday = true
+                            }
                         }
                     }
                     .onChange(of: timeline.jumpToTodayCounter) { _, _ in
-                        let viewW = proxy.size.width
                         withAnimation(.easeInOut(duration: 0.25)) {
-                            hScrollOffsetX = max(0, g.x(for: today()) - viewW / 2)
+                            hProxy.scrollTo("today", anchor: .center)
                         }
-                        // Re-evaluate after scroll lands.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            updateIsAtToday(viewWidth: viewW, geometry: g)
-                        }
+                        isAtToday = true
                     }
-                    .onChange(of: hScrollOffsetX) { _, _ in
-                        updateIsAtToday(viewWidth: proxy.size.width, geometry: g)
-                    }
-                    .onChange(of: timeline.effectiveDayWidth) { _, _ in
-                        updateIsAtToday(viewWidth: proxy.size.width, geometry: g)
-                    }
-                    .gesture(zoomGesture(viewWidth: proxy.size.width))
+                    .gesture(zoomGesture)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -74,47 +66,27 @@ struct TimelineView: View {
         .background(LaneColors.bgBase)
     }
 
-    private func zoomGesture(viewWidth: CGFloat) -> some Gesture {
+    private var zoomGesture: some Gesture {
         MagnifyGesture(minimumScaleDelta: 0.02)
             .onChanged { value in
                 if zoomBaseline == nil {
                     zoomBaseline = timeline.effectiveDayWidth
-                    let cursorScreenX = value.startLocation.x
-                    zoomAnchorScreenX = cursorScreenX
-                    zoomAnchorOffsetInCanvas = hScrollOffsetX + cursorScreenX
                 }
-                guard let base = zoomBaseline,
-                      let anchorOffset = zoomAnchorOffsetInCanvas,
-                      let anchorScreen = zoomAnchorScreenX else { return }
-                let oldWidth = timeline.effectiveDayWidth
+                guard let base = zoomBaseline else { return }
                 let raw = value.magnification
                 let damped = raw >= 1
                     ? 1 + (raw - 1) * 0.4
                     : 1 - (1 - raw) * 0.4
                 timeline.setDayWidth(base * damped)
-                let scale = timeline.effectiveDayWidth / oldWidth
-                let newAnchor = anchorOffset * scale
-                hScrollOffsetX = max(0, newAnchor - anchorScreen)
-                zoomAnchorOffsetInCanvas = newAnchor
-                _ = viewWidth
+                isAtToday = false
             }
             .onEnded { _ in
                 zoomBaseline = nil
-                zoomAnchorOffsetInCanvas = nil
-                zoomAnchorScreenX = nil
             }
     }
 
     private func today() -> Date {
         Calendar(identifier: .gregorian).startOfDay(for: Date())
-    }
-
-    private func updateIsAtToday(viewWidth: CGFloat, geometry: TimelineGeometry) {
-        let center = hScrollOffsetX + viewWidth / 2
-        let todayX = geometry.x(for: today())
-        let tolerance = max(60, viewWidth * 0.1)
-        let next = abs(center - todayX) < tolerance
-        if isAtToday != next { isAtToday = next }
     }
 
     private var titleColumn: some View {
