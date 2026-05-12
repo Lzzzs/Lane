@@ -75,8 +75,8 @@ struct TimelineView: View {
                 guard let base = zoomBaseline else { return }
                 let raw = value.magnification
                 let damped = raw >= 1
-                    ? 1 + (raw - 1) * 0.25
-                    : 1 - (1 - raw) * 0.25
+                    ? 1 + (raw - 1) * 0.12
+                    : 1 - (1 - raw) * 0.12
                 timeline.setDayWidth(base * damped)
                 isAtToday = false
             }
