@@ -13,7 +13,10 @@ struct TimelineView: View {
     static let laneHeaderHeight: CGFloat = 40
 
     @State private var zoomBaseline: CGFloat? = nil
+    @State private var zoomAnchorDate: Date? = nil
+    @State private var zoomAnchorScreenX: CGFloat? = nil
     @State private var pendingScrollToToday: Bool = true
+    @State private var hScrollOffsetX: CGFloat = 0
 
     var body: some View {
         let g = TimelineGeometry(
@@ -26,38 +29,49 @@ struct TimelineView: View {
                 titleColumn
                     .frame(width: Self.titleColumnWidth, alignment: .leading)
 
-                ScrollViewReader { hProxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        ZStack(alignment: .topLeading) {
-                            timelineCanvas(geometry: g, width: canvasWidth)
-                            TodayLine(geometry: g)
-                            // Hidden anchor at today's x for ScrollViewReader.
-                            HStack(spacing: 0) {
-                                Color.clear.frame(width: max(0, g.x(for: today()) - 1))
-                                Color.clear.frame(width: 2).id("today")
-                                Spacer(minLength: 0)
+                GeometryReader { proxy in
+                    ScrollViewReader { hProxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            ZStack(alignment: .topLeading) {
+                                timelineCanvas(geometry: g, width: canvasWidth)
+                                TodayLine(geometry: g)
+                                anchorStrip(geometry: g, canvasWidth: canvasWidth)
+                                // Tracks horizontal scroll offset for cursor-
+                                // anchored zoom. The inner GeometryReader reads
+                                // its frame inside the named coordinate space;
+                                // negate the minX to get the scroll offset.
+                                GeometryReader { inner in
+                                    Color.clear.preference(
+                                        key: ScrollOffsetKey.self,
+                                        value: -inner.frame(in: .named("h-scroll")).minX
+                                    )
+                                }
+                                .frame(width: 1, height: 1)
+                                .allowsHitTesting(false)
                             }
-                            .frame(width: canvasWidth, height: 1)
-                            .allowsHitTesting(false)
+                            .frame(width: canvasWidth, alignment: .topLeading)
                         }
-                        .frame(width: canvasWidth, alignment: .topLeading)
-                    }
-                    .onAppear {
-                        if pendingScrollToToday {
-                            pendingScrollToToday = false
-                            DispatchQueue.main.async {
+                        .coordinateSpace(name: "h-scroll")
+                        .onPreferenceChange(ScrollOffsetKey.self) { value in
+                            hScrollOffsetX = value
+                        }
+                        .onAppear {
+                            if pendingScrollToToday {
+                                pendingScrollToToday = false
+                                DispatchQueue.main.async {
+                                    hProxy.scrollTo("today", anchor: .center)
+                                    isAtToday = true
+                                }
+                            }
+                        }
+                        .onChange(of: timeline.jumpToTodayCounter) { _, _ in
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 hProxy.scrollTo("today", anchor: .center)
-                                isAtToday = true
                             }
+                            isAtToday = true
                         }
+                        .gesture(zoomGesture(viewWidth: proxy.size.width, hProxy: hProxy))
                     }
-                    .onChange(of: timeline.jumpToTodayCounter) { _, _ in
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            hProxy.scrollTo("today", anchor: .center)
-                        }
-                        isAtToday = true
-                    }
-                    .gesture(zoomGesture)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -66,22 +80,60 @@ struct TimelineView: View {
         .background(LaneColors.bgBase)
     }
 
-    private var zoomGesture: some Gesture {
+    @ViewBuilder
+    private func anchorStrip(geometry g: TimelineGeometry, canvasWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: max(0, g.x(for: today()) - 1))
+            Color.clear.frame(width: 2).id("today")
+            Spacer(minLength: 0)
+        }
+        .frame(width: canvasWidth, height: 1)
+        .allowsHitTesting(false)
+
+        if let anchorDate = zoomAnchorDate {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: max(0, g.x(for: anchorDate) - 1))
+                Color.clear.frame(width: 2).id("zoom-anchor")
+                Spacer(minLength: 0)
+            }
+            .frame(width: canvasWidth, height: 1)
+            .allowsHitTesting(false)
+        }
+    }
+
+    private func zoomGesture(viewWidth: CGFloat, hProxy: ScrollViewProxy) -> some Gesture {
         MagnifyGesture(minimumScaleDelta: 0.02)
             .onChanged { value in
                 if zoomBaseline == nil {
                     zoomBaseline = timeline.effectiveDayWidth
+                    let cursorX = value.startLocation.x
+                    zoomAnchorScreenX = cursorX
+                    // Date currently sitting under the cursor.
+                    let dayOffset = (hScrollOffsetX + cursorX) / timeline.effectiveDayWidth
+                    let cal = Calendar(identifier: .gregorian)
+                    zoomAnchorDate = cal.date(
+                        byAdding: .day,
+                        value: Int(dayOffset.rounded()),
+                        to: cal.startOfDay(for: timeline.viewportStart))
                 }
-                guard let base = zoomBaseline else { return }
+                guard let base = zoomBaseline,
+                      let cursorX = zoomAnchorScreenX else { return }
                 let raw = value.magnification
                 let damped = raw >= 1
                     ? 1 + (raw - 1) * 0.12
                     : 1 - (1 - raw) * 0.12
                 timeline.setDayWidth(base * damped)
                 isAtToday = false
+                // Re-pin the anchor date at the cursor screen-x. UnitPoint x is
+                // the fraction of the viewport where the target should land.
+                let fraction = viewWidth > 0 ? cursorX / viewWidth : 0.5
+                hProxy.scrollTo("zoom-anchor",
+                                anchor: UnitPoint(x: fraction, y: 0))
             }
             .onEnded { _ in
                 zoomBaseline = nil
+                zoomAnchorDate = nil
+                zoomAnchorScreenX = nil
             }
     }
 
@@ -197,5 +249,12 @@ struct TimelineView: View {
         let days = (cal.dateComponents([.day],
             from: timeline.viewportStart, to: timeline.viewportEnd).day ?? 0) + 1
         return CGFloat(days) * timeline.effectiveDayWidth
+    }
+}
+
+private struct ScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
